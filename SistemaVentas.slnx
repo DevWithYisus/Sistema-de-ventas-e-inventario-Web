@@ -1,0 +1,25 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Api/">
+    <Project Path="src/Api/SistemaVentas.Api/SistemaVentas.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/BuildingBlocks/">
+    <Project Path="src/BuildingBlocks/Core.Application/Core.Application.csproj" />
+    <Project Path="src/BuildingBlocks/Core.Domain/Core.Domain.csproj" />
+    <Project Path="src/BuildingBlocks/Core.Infrastructure/Core.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/" />
+  <Folder Name="/src/Modules/Catalogo/">
+    <Project Path="src/Modules/Catalogo/Catalogo.Application/Catalogo.Application.csproj" />
+    <Project Path="src/Modules/Catalogo/Catalogo.Domain/Catalogo.Domain.csproj" />
+    <Project Path="src/Modules/Catalogo/Catalogo.Infrastructure/Catalogo.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/src/Modules/Inventario/">
+    <Project Path="src/Modules/Inventario/Inventario.Application/Inventario.Application.csproj" />
+    <Project Path="src/Modules/Inventario/Inventario.Domain/Inventario.Domain.csproj" />
+    <Project Path="src/Modules/Inventario/Inventario.Infrastructure/Inventario.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Inventario.UnitTests/Inventario.UnitTests.csproj" />
+  </Folder>
+</Solution>
