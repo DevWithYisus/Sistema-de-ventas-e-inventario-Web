@@ -11,6 +11,7 @@
   <Folder Name="/src/Modules/" />
   <Folder Name="/src/Modules/Catalogo/">
     <Project Path="src/Modules/Catalogo/Catalogo.Application/Catalogo.Application.csproj" />
+    <Project Path="src/Modules/Catalogo/Catalogo.Contracts/Catalogo.Contracts.csproj" />
     <Project Path="src/Modules/Catalogo/Catalogo.Domain/Catalogo.Domain.csproj" />
     <Project Path="src/Modules/Catalogo/Catalogo.Infrastructure/Catalogo.Infrastructure.csproj" />
   </Folder>
