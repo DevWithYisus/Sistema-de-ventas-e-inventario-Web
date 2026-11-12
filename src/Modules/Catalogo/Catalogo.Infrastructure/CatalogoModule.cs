@@ -1,4 +1,5 @@
 using Catalogo.Application.Abstracciones;
+using Catalogo.Contracts;
 using Catalogo.Infrastructure.Persistence;
 using Core.Application;
 using Core.Infrastructure.Persistence;
@@ -20,6 +21,9 @@ public static class CatalogoModule
         services.AddScoped<ICatalogoUnitOfWork>(sp => sp.GetRequiredService<CatalogoDbContext>());
         services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
         services.AddScoped<ICatalogoConsultas, CatalogoConsultas>();
+
+        // Contrato público para los demás módulos
+        services.AddScoped<ICatalogoApi, CatalogoApi>();
 
         // Handlers y validadores del módulo (los descubre solos)
         services.AddApplicationHandlers(typeof(ICatalogoRepositorio).Assembly);

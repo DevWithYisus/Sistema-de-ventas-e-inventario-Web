@@ -1,0 +1,146 @@
+# Flujo completo de Inventario. Ejecuta las peticiones EN ORDEN (cada una usa datos de las anteriores).
+# Ajusta el puerto con el que aparece en la consola al ejecutar la API.
+@host = http://localhost:5248
+@negocioA = 11111111-1111-1111-1111-111111111111
+@negocioB = 22222222-2222-2222-2222-222222222222
+
+### 1. Inicializar el inventario del negocio A (tipos de movimiento + almacén principal)
+# Primera vez: tiposMovimientoCreados = 8 y almacenPrincipalCreado = true. Repetirlo no duplica nada.
+POST {{host}}/api/inventario/inicializar
+X-Tenant-Id: {{negocioA}}
+
+### 2. Crear la bodega que usaremos en la prueba (código aleatorio para poder repetir el flujo)
+# @name crearBodega
+POST {{host}}/api/inventario/almacenes
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{ "codigo": "BOD-{{$randomInt 1000 9999}}", "nombre": "Bodega de prueba" }
+
+### 3. Crear la tienda
+# @name crearTienda
+POST {{host}}/api/inventario/almacenes
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{ "codigo": "TIE-{{$randomInt 1000 9999}}", "nombre": "Tienda de prueba" }
+
+### 4. Crear una unidad de medida para esta prueba
+# @name crearUnidad
+POST {{host}}/api/catalogo/unidades-medida
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{ "codigo": "U{{$randomInt 1000 9999}}", "nombre": "Unidad de prueba", "permiteDecimales": false }
+
+### 5. Crear un producto nuevo para esta prueba
+# @name crearTaladro
+POST {{host}}/api/catalogo/productos
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{
+  "nombre": "Taladro percutor",
+  "sku": "TAL-{{$guid}}",
+  "unidadBaseId": "{{crearUnidad.response.body.$.id}}"
+}
+
+### 6. Obtener el producto (necesitamos el id de su variante)
+# @name taladro
+GET {{host}}/api/catalogo/productos/{{crearTaladro.response.body.$.id}}
+X-Tenant-Id: {{negocioA}}
+
+### 7. COMPRA de 10 unidades a $100.000 en la bodega -> COMPRA-000001 (o el siguiente)
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{
+  "tipoMovimiento": "COMPRA",
+  "almacenDestinoId": "{{crearBodega.response.body.$.id}}",
+  "observacion": "Primera compra",
+  "lineas": [
+    { "varianteId": "{{taladro.response.body.$.variantes[0].id}}", "cantidad": 10, "costoUnitario": 100000 }
+  ]
+}
+
+### 8. Segunda COMPRA de 10 unidades a $200.000 -> el costo promedio pasa a $150.000
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{
+  "tipoMovimiento": "COMPRA",
+  "almacenDestinoId": "{{crearBodega.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{taladro.response.body.$.variantes[0].id}}", "cantidad": 10, "costoUnitario": 200000 }
+  ]
+}
+
+### 9. Consultar el stock -> 20 unidades, costoPromedio 150000, valorTotal 3000000
+GET {{host}}/api/inventario/stock?varianteId={{taladro.response.body.$.variantes[0].id}}
+X-Tenant-Id: {{negocioA}}
+
+### 10. VENTA de 5 unidades -> sale al costo promedio de $150.000
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{
+  "tipoMovimiento": "VENTA",
+  "almacenOrigenId": "{{crearBodega.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{taladro.response.body.$.variantes[0].id}}", "cantidad": 5 }
+  ]
+}
+
+### 11. VENTA de 100 unidades -> debe responder 409 (inventario.stock_insuficiente)
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{
+  "tipoMovimiento": "VENTA",
+  "almacenOrigenId": "{{crearBodega.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{taladro.response.body.$.variantes[0].id}}", "cantidad": 100 }
+  ]
+}
+
+### 12. TRASLADO de 5 unidades de la bodega a la tienda
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{
+  "tipoMovimiento": "TRASLADO",
+  "almacenOrigenId": "{{crearBodega.response.body.$.id}}",
+  "almacenDestinoId": "{{crearTienda.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{taladro.response.body.$.variantes[0].id}}", "cantidad": 5 }
+  ]
+}
+
+### 13. Stock por almacén -> bodega: 10 unidades, tienda: 5 unidades (ambas a $150.000)
+GET {{host}}/api/inventario/stock?varianteId={{taladro.response.body.$.variantes[0].id}}
+X-Tenant-Id: {{negocioA}}
+
+### 14. Kardex completo del producto, línea por línea con saldos
+GET {{host}}/api/inventario/kardex?varianteId={{taladro.response.body.$.variantes[0].id}}
+X-Tenant-Id: {{negocioA}}
+
+### 15. AISLAMIENTO: el negocio B consulta el stock de esa variante -> lista vacía
+GET {{host}}/api/inventario/stock?varianteId={{taladro.response.body.$.variantes[0].id}}
+X-Tenant-Id: {{negocioB}}
+
+### 16. Validación: una venta sin almacén de origen -> debe responder 400 (movimiento.almacenes_invalidos)
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+X-Tenant-Id: {{negocioA}}
+
+{
+  "tipoMovimiento": "VENTA",
+  "lineas": [
+    { "varianteId": "{{taladro.response.body.$.variantes[0].id}}", "cantidad": 1 }
+  ]
+}

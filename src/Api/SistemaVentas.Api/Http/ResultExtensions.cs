@@ -7,9 +7,16 @@ public static class ResultExtensions
     public static IResult ToHttp<T>(this Result<T> resultado)
         => resultado.IsSuccess ? Results.Ok(resultado.Value) : resultado.Error.ToProblem();
 
+    /// <summary>201 Created para comandos que devuelven solo el id.</summary>
     public static IResult ToCreated(this Result<Guid> resultado, string rutaBase)
         => resultado.IsSuccess
             ? Results.Created($"{rutaBase}/{resultado.Value}", new { id = resultado.Value })
+            : resultado.Error.ToProblem();
+
+    /// <summary>201 Created devolviendo el resultado completo y calculando la ubicación desde él.</summary>
+    public static IResult ToCreated<T>(this Result<T> resultado, Func<T, string> ubicacion)
+        => resultado.IsSuccess
+            ? Results.Created(ubicacion(resultado.Value), resultado.Value)
             : resultado.Error.ToProblem();
 
     private static IResult ToProblem(this Error error)

@@ -3,6 +3,7 @@ using System.Text.Json.Serialization;
 using Catalogo.Infrastructure;
 using Core.Application.Abstractions;
 using Core.Infrastructure;
+using Inventario.Infrastructure;
 using Scalar.AspNetCore;
 using Serilog;
 using Serilog.Events;
@@ -41,6 +42,7 @@ builder.Services.AddScoped<ICurrentUser>(sp => sp.GetRequiredService<HeaderTenan
 // ---------- Módulos ----------
 builder.Services.AddCoreInfrastructure();
 builder.Services.AddCatalogoModule(connectionString);
+builder.Services.AddInventarioModule(connectionString);
 
 // ---------- API ----------
 builder.Services.ConfigureHttpJsonOptions(opciones =>
@@ -78,6 +80,7 @@ app.Use(async (contexto, siguiente) =>
 });
 
 app.MapCatalogoEndpoints();
+app.MapInventarioEndpoints();
 
 app.Run();
 
