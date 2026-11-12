@@ -62,6 +62,13 @@ internal sealed class CatalogoConsultas(CatalogoDbContext db) : ICatalogoConsult
             .Select(u => new UnidadMedidaDto(u.Id, u.Codigo, u.Nombre, u.PermiteDecimales, u.Activo))
             .ToListAsync(ct);
 
+    public async Task<IReadOnlyList<CategoriaDto>> ListarCategoriasAsync(CancellationToken ct)
+        => await db.Categorias
+            .AsNoTracking()
+            .OrderBy(c => c.Nombre)
+            .Select(c => new CategoriaDto(c.Id, c.Codigo, c.Nombre, c.CategoriaPadreId, c.EsParaObsequios, c.Activo))
+            .ToListAsync(ct);
+
     // Evita que % o _ escritos por el usuario actúen como comodines
     private static string Escapar(string texto)
         => texto.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");

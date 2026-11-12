@@ -47,6 +47,10 @@ public interface IInventarioApi
     Task<IReadOnlyList<AlertaDeStock>> ObtenerAlertasDeStockAsync(
         IReadOnlyCollection<Guid> varianteIds, CancellationToken cancellationToken);
 
+    /// <summary>Stock disponible (existencia menos reservado) sumado en todos los almacenes.</summary>
+    Task<IReadOnlyDictionary<Guid, decimal>> ObtenerDisponibleAsync(
+        IReadOnlyCollection<Guid> varianteIds, CancellationToken cancellationToken);
+
     /// <summary>Valor del inventario, alertas y lotes próximos a vencer.</summary>
     /// <param name="venceAntesDe">Fecha límite (inclusive) para contar lotes por vencer.</param>
     /// <param name="maxAlertas">Cuántas alertas devolver en el detalle.</param>

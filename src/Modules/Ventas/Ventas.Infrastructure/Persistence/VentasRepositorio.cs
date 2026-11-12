@@ -11,12 +11,14 @@ internal sealed class VentasRepositorio(VentasDbContext db) : IVentasRepositorio
 
     public void Agregar(Venta venta) => db.Ventas.Add(venta);
 
+    public Task<string> SiguienteNumeroAsync(CancellationToken ct) => SiguienteNumeroAsync(ClaveVenta, ct);
+
     /// <summary>
     /// Incrementa el contador con una sola sentencia atómica (INSERT ... ON CONFLICT ... RETURNING),
     /// así dos ventas simultáneas nunca obtienen el mismo número. Si la transacción se revierte,
     /// el número también, por lo que no quedan huecos en la numeración.
     /// </summary>
-    public async Task<string> SiguienteNumeroAsync(CancellationToken ct)
+    public async Task<string> SiguienteNumeroAsync(string clave, CancellationToken ct)
     {
         await db.Database.OpenConnectionAsync(ct);
         try
@@ -33,10 +35,10 @@ internal sealed class VentasRepositorio(VentasDbContext db) : IVentasRepositorio
 
             Agregar(comando, "id", Guid.CreateVersion7());
             Agregar(comando, "tenant", db.CurrentTenantId);
-            Agregar(comando, "clave", ClaveVenta);
+            Agregar(comando, "clave", clave);
 
             var ultimo = Convert.ToInt64(await comando.ExecuteScalarAsync(ct));
-            return $"{ClaveVenta}-{ultimo:D6}";
+            return $"{clave}-{ultimo:D6}";
         }
         finally
         {
@@ -56,6 +58,7 @@ internal sealed class VentasRepositorio(VentasDbContext db) : IVentasRepositorio
 
         return await db.Ventas
             .Include(v => v.Detalles)
+            .Include(v => v.Pagos)
             .FirstOrDefaultAsync(v => v.Id == ventaId, ct);
     }
 

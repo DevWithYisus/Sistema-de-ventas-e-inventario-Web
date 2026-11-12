@@ -8,6 +8,13 @@ internal sealed class CatalogoRepositorio(CatalogoDbContext db) : ICatalogoRepos
 {
     public void Agregar(Producto producto) => db.Productos.Add(producto);
     public void Agregar(UnidadMedida unidad) => db.UnidadesMedida.Add(unidad);
+    public void Agregar(Categoria categoria) => db.Categorias.Add(categoria);
+
+    public Task<bool> CategoriaCodigoExisteAsync(string codigo, CancellationToken ct)
+        => db.Categorias.AnyAsync(c => c.Codigo == codigo, ct);
+
+    public Task<Categoria?> ObtenerCategoriaAsync(Guid categoriaId, CancellationToken ct)
+        => db.Categorias.FirstOrDefaultAsync(c => c.Id == categoriaId, ct);
 
     public Task<bool> SkuExisteAsync(string sku, CancellationToken ct)
         => db.Variantes.AnyAsync(v => v.Sku == sku, ct);

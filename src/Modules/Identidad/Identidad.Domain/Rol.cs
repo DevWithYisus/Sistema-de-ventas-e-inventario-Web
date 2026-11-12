@@ -45,10 +45,13 @@ public static class RolesSistema
             [Core.Domain.Seguridad.Permisos.CatalogoLeer,
              Core.Domain.Seguridad.Permisos.InventarioLeer,
              Core.Domain.Seguridad.Permisos.InventarioMover], esSistema: true),
-        Rol.Crear(Vendedor, "Vende y consulta productos y existencias",
+        Rol.Crear(Vendedor, "Vende, atiende clientes y recibe abonos",
             [Core.Domain.Seguridad.Permisos.CatalogoLeer,
              Core.Domain.Seguridad.Permisos.InventarioLeer,
              Core.Domain.Seguridad.Permisos.VentasLeer,
-             Core.Domain.Seguridad.Permisos.VentasVender], esSistema: true)
+             Core.Domain.Seguridad.Permisos.VentasVender,
+             Core.Domain.Seguridad.Permisos.ClientesLeer,
+             Core.Domain.Seguridad.Permisos.ClientesEscribir,
+             Core.Domain.Seguridad.Permisos.AbonosRegistrar], esSistema: true)
     ];
 }

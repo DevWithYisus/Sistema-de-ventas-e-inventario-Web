@@ -34,6 +34,15 @@ public sealed class Venta : AuditedEntity
 
     public Guid? MovimientoInventarioId { get; private set; }
 
+    /// <summary>Cliente registrado (o el cliente general). Null en ventas anteriores al módulo de clientes.</summary>
+    public Guid? ClienteId { get; private set; }
+
+    /// <summary>Puntos que ganó el cliente con esta venta (solo por lo pagado en dinero, no a crédito).</summary>
+    public int PuntosGanados { get; private set; }
+
+    /// <summary>Puntos que el cliente usó como forma de pago.</summary>
+    public int PuntosRedimidos { get; private set; }
+
     public DateTimeOffset? AnuladaEn { get; private set; }
     public string? MotivoAnulacion { get; private set; }
     public Guid? MovimientoAnulacionId { get; private set; }
@@ -44,7 +53,7 @@ public sealed class Venta : AuditedEntity
     /// <param name="id">Se genera antes para poder enlazar el movimiento de inventario con la venta.</param>
     public static Venta Crear(
         Guid id, Guid almacenId, DateTimeOffset fecha,
-        string? clienteNombre, string? clienteDocumento, string? observacion)
+        string? clienteNombre, string? clienteDocumento, string? observacion, Guid? clienteId = null)
     {
         if (almacenId == Guid.Empty)
             throw new DomainException("venta.almacen_requerido", "La venta necesita un almacén.");
@@ -54,6 +63,7 @@ public sealed class Venta : AuditedEntity
             Id = id,
             AlmacenId = almacenId,
             Fecha = fecha,
+            ClienteId = clienteId,
             ClienteNombre = Guard.Opcional(clienteNombre, nameof(clienteNombre), 150),
             ClienteDocumento = Guard.Opcional(clienteDocumento, nameof(clienteDocumento), 30),
             Observacion = Guard.Opcional(observacion, nameof(observacion), 500)
@@ -75,11 +85,25 @@ public sealed class Venta : AuditedEntity
         return detalle;
     }
 
-    public Pago AgregarPago(MetodoPago metodo, decimal monto, string? referencia = null)
+    /// <summary>Producto regalado: no se cobra, pero sale del inventario y su costo cuenta como gasto.</summary>
+    public VentaDetalle AgregarObsequio(Guid varianteId, string sku, string descripcion, decimal cantidad, bool afectaInventario)
     {
         ExigirEstado(EstadoVenta.Borrador, "venta.no_editable", "La venta ya fue completada y no se puede modificar.");
 
-        var pago = Pago.Crear(Id, metodo, monto, referencia);
+        var detalle = VentaDetalle.Crear(
+            Id, varianteId, sku, descripcion, cantidad, precioUnitario: 0,
+            descuentoPorcentaje: 0, impuestoPorcentaje: 0, afectaInventario, esObsequio: true);
+
+        _detalles.Add(detalle);
+        Recalcular();
+        return detalle;
+    }
+
+    public Pago AgregarPago(MetodoPago metodo, decimal monto, string? referencia = null, decimal? recibido = null)
+    {
+        ExigirEstado(EstadoVenta.Borrador, "venta.no_editable", "La venta ya fue completada y no se puede modificar.");
+
+        var pago = Pago.Crear(Id, metodo, monto, referencia, recibido);
         _pagos.Add(pago);
         return pago;
     }
@@ -91,6 +115,9 @@ public sealed class Venta : AuditedEntity
 
         if (_detalles.Count == 0)
             throw new DomainException("venta.sin_lineas", "La venta no tiene líneas.");
+
+        if (_detalles.All(d => d.EsObsequio))
+            throw new DomainException("venta.solo_obsequios", "Los obsequios acompañan una compra: agrega al menos un producto vendido.");
 
         if (Total <= 0)
             throw new DomainException("venta.total_invalido", "El total de la venta debe ser mayor que cero.");
@@ -116,6 +143,22 @@ public sealed class Venta : AuditedEntity
         }
 
         Estado = EstadoVenta.Completada;
+    }
+
+    /// <summary>Lo pagado con dinero real (no crédito ni puntos): es la base para calcular los puntos ganados.</summary>
+    public decimal PagadoEnDinero => _pagos.Where(p => MetodosDePago.EsDinero(p.Metodo)).Sum(p => p.Monto);
+
+    public decimal PagadoACredito => _pagos.Where(p => p.Metodo == MetodoPago.Credito).Sum(p => p.Monto);
+
+    public decimal PagadoConPuntos => _pagos.Where(p => p.Metodo == MetodoPago.Puntos).Sum(p => p.Monto);
+
+    public void RegistrarPuntos(int ganados, int redimidos)
+    {
+        if (ganados < 0 || redimidos < 0)
+            throw new DomainException("venta.puntos_invalidos", "Los puntos no pueden ser negativos.");
+
+        PuntosGanados = ganados;
+        PuntosRedimidos = redimidos;
     }
 
     public void Anular(string motivo, Guid? movimientoAnulacionId, DateTimeOffset ahora)

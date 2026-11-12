@@ -6,7 +6,7 @@ using Ventas.Application.Abstracciones;
 
 namespace Ventas.Application.Dashboard;
 
-/// <param name="Utilidad">Venta neta (sin impuestos) menos costo de lo vendido.</param>
+/// <param name="Utilidad">Venta neta (sin impuestos) menos costo de lo vendido y de los obsequios entregados.</param>
 /// <param name="MargenPorcentaje">Utilidad sobre venta neta.</param>
 public sealed record IndicadorDeVentas(
     int Cantidad, decimal Total, decimal TicketPromedio, decimal Utilidad, decimal MargenPorcentaje);
@@ -27,13 +27,16 @@ public sealed record ResumenDashboardDto(
     IReadOnlyList<ProductoMasVendidoDto> ProductosMasVendidosDelMes,
     IReadOnlyList<VentasPorMetodoDto> VentasDelMesPorMetodoDePago,
     IReadOnlyList<VentaResumenDto> UltimasVentas,
-    ResumenDeInventario Inventario);
+    ResumenDeInventario Inventario,
+    decimal ObsequiosDelMes,
+    ResumenCarteraDto Cartera);
 
 /// <param name="DiasGrafico">Días hacia atrás del gráfico de ventas diarias (7 a 90).</param>
 public sealed record ObtenerResumenDashboardQuery(int DiasGrafico = 30) : IQuery<ResumenDashboardDto>;
 
 internal sealed class ObtenerResumenDashboardHandler(
     IVentasConsultas ventas,
+    IClientesConsultas clientes,
     IInventarioApi inventario,
     ZonaHorariaNegocio zona,
     TimeProvider reloj) : IQueryHandler<ObtenerResumenDashboardQuery, ResumenDashboardDto>
@@ -61,6 +64,9 @@ internal sealed class ObtenerResumenDashboardHandler(
         var metodos = await ventas.VentasPorMetodoDePagoAsync(p.MesActual.Desde, p.MesActual.Hasta, ct);
         var ultimas = await ventas.ListarVentasAsync(null, null, null, 1, CantidadUltimasVentas, ct);
 
+        var obsequios = await ventas.CostoObsequiosAsync(p.MesActual.Desde, p.MesActual.Hasta, ct);
+        var cartera = await clientes.ResumenCarteraAsync(ct);
+
         var resumenInventario = await inventario.ObtenerResumenAsync(
             p.Hoy.AddDays(DiasAvisoVencimiento), MaxAlertas, ct);
 
@@ -73,7 +79,9 @@ internal sealed class ObtenerResumenDashboardHandler(
             top,
             metodos,
             ultimas.Items,
-            resumenInventario);
+            resumenInventario,
+            obsequios,
+            cartera);
     }
 
     private async Task<IndicadorDeVentas> IndicadorAsync(RangoDeFechas rango, CancellationToken ct)

@@ -13,7 +13,8 @@ namespace Inventario.Infrastructure;
 internal sealed class InventarioApi(
     ICommandHandler<RegistrarMovimientoCommand, MovimientoRegistradoDto> registrar,
     IInventarioConsultas consultas,
-    CalculadorDeAlertas alertas) : IInventarioApi
+    CalculadorDeAlertas alertas,
+    IAlertasStockConsultas stock) : IInventarioApi
 {
     private const string OrigenVenta = "VENTA";
 
@@ -28,6 +29,12 @@ internal sealed class InventarioApi(
     public Task<IReadOnlyList<AlertaDeStock>> ObtenerAlertasDeStockAsync(
         IReadOnlyCollection<Guid> varianteIds, CancellationToken cancellationToken)
         => alertas.CalcularAsync(varianteIds, cancellationToken);
+
+    public Task<IReadOnlyDictionary<Guid, decimal>> ObtenerDisponibleAsync(
+        IReadOnlyCollection<Guid> varianteIds, CancellationToken cancellationToken)
+        => varianteIds.Count == 0
+            ? Task.FromResult<IReadOnlyDictionary<Guid, decimal>>(new Dictionary<Guid, decimal>())
+            : stock.DisponiblePorVarianteAsync(varianteIds, cancellationToken);
 
     public async Task<ResumenDeInventario> ObtenerResumenAsync(
         DateOnly venceAntesDe, int maxAlertas, CancellationToken cancellationToken)

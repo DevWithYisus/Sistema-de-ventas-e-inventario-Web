@@ -10,6 +10,7 @@ using Identidad.Application.Negocios;
 using Identidad.Application.Usuarios;
 using Inventario.Application;
 using Inventario.Application.Inicializacion;
+using Ventas.Application.Configuracion;
 using SistemaVentas.Api.Http;
 
 namespace SistemaVentas.Api.Endpoints;
@@ -70,6 +71,7 @@ public static class IdentidadEndpoints
                 ProvisionarNegocioCommand comando,
                 ICommandHandler<ProvisionarNegocioCommand, NegocioProvisionadoDto> provisionar,
                 ICommandHandler<InicializarInventarioCommand, InicializacionDto> inicializarInventario,
+                ICommandHandler<InicializarVentasCommand, InicializacionVentasDto> inicializarVentas,
                 IEstablecedorDeNegocio negocioActual,
                 CancellationToken ct) =>
             {
@@ -95,6 +97,9 @@ public static class IdentidadEndpoints
                 // El negocio nuevo ya nace con su inventario listo (tipos de movimiento y almacén principal)
                 negocioActual.Establecer(resultado.Value.NegocioId);
                 var inventario = await inicializarInventario.HandleAsync(new InicializarInventarioCommand(), ct);
+
+                // ...y con su punto de venta listo (cliente general y configuración de puntos y tirilla)
+                await inicializarVentas.HandleAsync(new InicializarVentasCommand(comando.Nombre), ct);
 
                 return Results.Created(
                     $"/api/plataforma/negocios/{resultado.Value.NegocioId}",

@@ -17,8 +17,28 @@ public sealed record InfoVariante(
     bool? PermiteStockNegativo,
     IReadOnlyList<InfoPresentacion> Presentaciones,
     decimal PrecioBase,
-    decimal StockMinimo);
+    decimal StockMinimo,
+    bool EsObsequiable = false);
 
+/// <summary>
+/// Resultado de buscar un producto en el punto de venta.
+/// </summary>
+/// <param name="CantidadPorEscaneo">
+/// Unidades que suma un escaneo: 1 si el código es del producto; el factor de la presentación
+/// si es el código de una caja o bulto (ej. bulto x 12 = 12).
+/// </param>
+/// <param name="CoincidenciaExacta">El texto buscado es exactamente el código de barras o el SKU.</param>
+public sealed record ProductoParaVenta(
+    Guid VarianteId,
+    string Sku,
+    string Nombre,
+    string? CodigoBarras,
+    decimal Precio,
+    bool ManejaInventario,
+    bool ManejaLotes,
+    bool EsObsequiable,
+    decimal CantidadPorEscaneo,
+    bool CoincidenciaExacta);
 /// <summary>Variante que tiene definido un stock mínimo (candidata a alertas de bajo stock).</summary>
 public sealed record VarianteConStockMinimo(Guid VarianteId, string Sku, string Nombre, decimal StockMinimo);
 
@@ -35,4 +55,12 @@ public interface ICatalogoApi
     /// <param name="varianteIds">Si se indica, limita la búsqueda a esas variantes.</param>
     Task<IReadOnlyList<VarianteConStockMinimo>> ListarVariantesConStockMinimoAsync(
         IReadOnlyCollection<Guid>? varianteIds, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Busca variantes activas por código de barras (de la variante o de una presentación), SKU o nombre.
+    /// Las coincidencias exactas de código van primero, para que el lector de código de barras funcione al instante.
+    /// </summary>
+    /// <param name="soloObsequios">Solo productos de categorías marcadas para obsequios.</param>
+    Task<IReadOnlyList<ProductoParaVenta>> BuscarParaVentaAsync(
+        string texto, bool soloObsequios, int maximo, CancellationToken cancellationToken);
 }

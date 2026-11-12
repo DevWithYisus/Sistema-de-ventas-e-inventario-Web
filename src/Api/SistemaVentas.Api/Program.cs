@@ -159,6 +159,7 @@ app.MapAlertasStockEndpoints();
 app.MapCatalogoVariantesEndpoints();
 app.MapVentasEndpoints();
 app.MapDashboardEndpoints();
+app.MapClientesEndpoints();
 
 app.MapHealthChecks("/health").AllowAnonymous();
 

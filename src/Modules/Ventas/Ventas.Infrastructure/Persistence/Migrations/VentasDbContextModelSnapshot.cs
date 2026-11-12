@@ -23,6 +23,282 @@ namespace Ventas.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Ventas.Domain.Abono", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("AnuladoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("anulado_en");
+
+                    b.Property<Guid>("ClienteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cliente_id");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en");
+
+                    b.Property<Guid?>("CreadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creado_por");
+
+                    b.Property<string>("Estado")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .HasColumnName("estado");
+
+                    b.Property<DateTimeOffset>("Fecha")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha");
+
+                    b.Property<string>("Metodo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("metodo");
+
+                    b.Property<DateTimeOffset?>("ModificadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modificado_en");
+
+                    b.Property<Guid?>("ModificadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("modificado_por");
+
+                    b.Property<decimal>("Monto")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("monto");
+
+                    b.Property<string>("MotivoAnulacion")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("motivo_anulacion");
+
+                    b.Property<string>("Numero")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("numero");
+
+                    b.Property<string>("Observacion")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("observacion");
+
+                    b.Property<int>("PuntosGanados")
+                        .HasColumnType("integer")
+                        .HasColumnName("puntos_ganados");
+
+                    b.Property<string>("Referencia")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("referencia");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId", "Fecha");
+
+                    b.HasIndex("TenantId", "Numero")
+                        .IsUnique();
+
+                    b.ToTable("abonos", "ventas");
+                });
+
+            modelBuilder.Entity("Ventas.Domain.Cliente", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Activo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("activo");
+
+                    b.Property<string>("ComplementoDireccion")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("complemento_direccion");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en");
+
+                    b.Property<Guid?>("CreadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creado_por");
+
+                    b.Property<decimal>("CupoCredito")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("cupo_credito");
+
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("direccion");
+
+                    b.Property<string>("Documento")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("documento");
+
+                    b.Property<DateTimeOffset?>("EliminadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("eliminado_en");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("email");
+
+                    b.Property<bool>("EsGeneral")
+                        .HasColumnType("boolean")
+                        .HasColumnName("es_general");
+
+                    b.Property<DateTimeOffset?>("ModificadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modificado_en");
+
+                    b.Property<Guid?>("ModificadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("modificado_por");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("nombre");
+
+                    b.Property<string>("Notas")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("notas");
+
+                    b.Property<decimal>("SaldoDeuda")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("saldo_deuda");
+
+                    b.Property<int>("SaldoPuntos")
+                        .HasColumnType("integer")
+                        .HasColumnName("saldo_puntos");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("telefono");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_clientes_general")
+                        .HasFilter("es_general AND eliminado_en IS NULL");
+
+                    b.HasIndex("TenantId", "Documento")
+                        .IsUnique()
+                        .HasFilter("eliminado_en IS NULL AND documento IS NOT NULL");
+
+                    b.HasIndex("TenantId", "Nombre");
+
+                    b.ToTable("clientes", "ventas");
+                });
+
+            modelBuilder.Entity("Ventas.Domain.ConfiguracionVentas", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AnchoTirillaMm")
+                        .HasColumnType("integer")
+                        .HasColumnName("ancho_tirilla_mm");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en");
+
+                    b.Property<Guid?>("CreadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creado_por");
+
+                    b.Property<string>("Direccion")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("direccion");
+
+                    b.Property<string>("MensajePie")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)")
+                        .HasColumnName("mensaje_pie");
+
+                    b.Property<DateTimeOffset?>("ModificadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modificado_en");
+
+                    b.Property<Guid?>("ModificadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("modificado_por");
+
+                    b.Property<decimal>("MontoBasePuntos")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("monto_base_puntos");
+
+                    b.Property<string>("Nit")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("nit");
+
+                    b.Property<string>("NombreComercial")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)")
+                        .HasColumnName("nombre_comercial");
+
+                    b.Property<bool>("PuntosActivo")
+                        .HasColumnType("boolean")
+                        .HasColumnName("puntos_activo");
+
+                    b.Property<int>("PuntosPorMontoBase")
+                        .HasColumnType("integer")
+                        .HasColumnName("puntos_por_monto_base");
+
+                    b.Property<string>("Telefono")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("telefono");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<decimal>("ValorPunto")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("valor_punto");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId")
+                        .IsUnique();
+
+                    b.ToTable("configuracion", "ventas");
+                });
+
             modelBuilder.Entity("Ventas.Domain.Consecutivo", b =>
                 {
                     b.Property<Guid>("Id")
@@ -51,6 +327,85 @@ namespace Ventas.Infrastructure.Persistence.Migrations
                     b.ToTable("consecutivos", "ventas");
                 });
 
+            modelBuilder.Entity("Ventas.Domain.MovimientoCliente", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid?>("AbonoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("abono_id");
+
+                    b.Property<Guid>("ClienteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cliente_id");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en");
+
+                    b.Property<Guid?>("CreadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creado_por");
+
+                    b.Property<decimal>("Deuda")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("deuda");
+
+                    b.Property<string>("Documento")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("documento");
+
+                    b.Property<DateTimeOffset>("Fecha")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fecha");
+
+                    b.Property<DateTimeOffset?>("ModificadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("modificado_en");
+
+                    b.Property<Guid?>("ModificadoPor")
+                        .HasColumnType("uuid")
+                        .HasColumnName("modificado_por");
+
+                    b.Property<int>("Puntos")
+                        .HasColumnType("integer")
+                        .HasColumnName("puntos");
+
+                    b.Property<decimal>("SaldoDeuda")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("saldo_deuda");
+
+                    b.Property<int>("SaldoPuntos")
+                        .HasColumnType("integer")
+                        .HasColumnName("saldo_puntos");
+
+                    b.Property<Guid>("TenantId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("tipo");
+
+                    b.Property<Guid?>("VentaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("venta_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ClienteId", "Fecha");
+
+                    b.ToTable("movimientos_cliente", "ventas");
+                });
+
             modelBuilder.Entity("Ventas.Domain.Pago", b =>
                 {
                     b.Property<Guid>("Id")
@@ -67,6 +422,11 @@ namespace Ventas.Infrastructure.Persistence.Migrations
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)")
                         .HasColumnName("monto");
+
+                    b.Property<decimal?>("Recibido")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)")
+                        .HasColumnName("recibido");
 
                     b.Property<string>("Referencia")
                         .HasMaxLength(100)
@@ -106,6 +466,10 @@ namespace Ventas.Infrastructure.Persistence.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("character varying(30)")
                         .HasColumnName("cliente_documento");
+
+                    b.Property<Guid?>("ClienteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("cliente_id");
 
                     b.Property<string>("ClienteNombre")
                         .HasMaxLength(150)
@@ -172,6 +536,14 @@ namespace Ventas.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("observacion");
 
+                    b.Property<int>("PuntosGanados")
+                        .HasColumnType("integer")
+                        .HasColumnName("puntos_ganados");
+
+                    b.Property<int>("PuntosRedimidos")
+                        .HasColumnType("integer")
+                        .HasColumnName("puntos_redimidos");
+
                     b.Property<decimal>("Subtotal")
                         .HasPrecision(18, 4)
                         .HasColumnType("numeric(18,4)")
@@ -188,10 +560,14 @@ namespace Ventas.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ClienteId");
+
                     b.HasIndex("TenantId", "Fecha");
 
                     b.HasIndex("TenantId", "Numero")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "ClienteId", "Fecha");
 
                     b.HasIndex("TenantId", "Estado", "Fecha");
 
@@ -233,6 +609,10 @@ namespace Ventas.Infrastructure.Persistence.Migrations
                         .HasPrecision(7, 4)
                         .HasColumnType("numeric(7,4)")
                         .HasColumnName("descuento_porcentaje");
+
+                    b.Property<bool>("EsObsequio")
+                        .HasColumnType("boolean")
+                        .HasColumnName("es_obsequio");
 
                     b.Property<decimal>("Impuesto")
                         .HasPrecision(18, 4)
@@ -286,6 +666,24 @@ namespace Ventas.Infrastructure.Persistence.Migrations
                     b.ToTable("venta_detalles", "ventas");
                 });
 
+            modelBuilder.Entity("Ventas.Domain.Abono", b =>
+                {
+                    b.HasOne("Ventas.Domain.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Ventas.Domain.MovimientoCliente", b =>
+                {
+                    b.HasOne("Ventas.Domain.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("Ventas.Domain.Pago", b =>
                 {
                     b.HasOne("Ventas.Domain.Venta", null)
@@ -293,6 +691,14 @@ namespace Ventas.Infrastructure.Persistence.Migrations
                         .HasForeignKey("VentaId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Ventas.Domain.Venta", b =>
+                {
+                    b.HasOne("Ventas.Domain.Cliente", null)
+                        .WithMany()
+                        .HasForeignKey("ClienteId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("Ventas.Domain.VentaDetalle", b =>

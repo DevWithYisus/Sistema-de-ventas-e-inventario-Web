@@ -16,6 +16,12 @@ public static class Permisos
     public const string VentasAnular = "ventas.anular";
     public const string UsuariosAdministrar = "usuarios.administrar";
     public const string ReportesVer = "reportes.ver";
+    public const string ClientesLeer = "clientes.leer";
+    public const string ClientesEscribir = "clientes.escribir";
+    public const string ClientesCredito = "clientes.credito";          // asignar el cupo de crédito
+    public const string AbonosRegistrar = "abonos.registrar";
+    public const string AbonosAnular = "abonos.anular";
+    public const string ConfiguracionAdministrar = "configuracion.administrar";
 
     public static IReadOnlyList<string> Todos { get; } =
     [
@@ -23,6 +29,9 @@ public static class Permisos
         InventarioLeer, InventarioMover, InventarioAdministrar,
         VentasLeer, VentasVender, VentasAnular,
         UsuariosAdministrar,
-        ReportesVer
+        ReportesVer,
+        ClientesLeer, ClientesEscribir, ClientesCredito,
+        AbonosRegistrar, AbonosAnular,
+        ConfiguracionAdministrar
     ];
 }

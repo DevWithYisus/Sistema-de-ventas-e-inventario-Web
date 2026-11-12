@@ -7,28 +7,35 @@ using FluentValidation;
 using Inventario.Contracts;
 using Microsoft.Extensions.Logging;
 using Ventas.Application.Abstracciones;
+using Ventas.Application.Configuracion;
 using Ventas.Domain;
 
 namespace Ventas.Application.Registro;
 
 /// <param name="PrecioUnitario">Si es null se usa el precio base del catálogo.</param>
 /// <param name="DescuentoPorcentaje">0 a 100.</param>
+/// <param name="EsObsequio">Producto regalado (de una categoría de obsequios): no se cobra.</param>
 public sealed record LineaVenta(
     Guid VarianteId,
     decimal Cantidad,
     decimal? PrecioUnitario = null,
     decimal DescuentoPorcentaje = 0,
-    decimal ImpuestoPorcentaje = 0);
+    decimal ImpuestoPorcentaje = 0,
+    bool EsObsequio = false);
 
-public sealed record PagoVenta(MetodoPago Metodo, decimal Monto, string? Referencia = null);
+/// <param name="Recibido">Solo efectivo: lo que entregó el cliente, para calcular el cambio.</param>
+public sealed record PagoVenta(MetodoPago Metodo, decimal Monto, string? Referencia = null, decimal? Recibido = null);
 
+/// <param name="ClienteId">Cliente registrado. Si es null la venta queda a nombre del cliente general.</param>
+/// <param name="ClienteNombre">Solo con el cliente general: nombre opcional para la tirilla.</param>
 public sealed record VenderCommand(
     Guid AlmacenId,
     IReadOnlyList<LineaVenta> Lineas,
     IReadOnlyList<PagoVenta> Pagos,
     string? ClienteNombre = null,
     string? ClienteDocumento = null,
-    string? Observacion = null) : ICommand<VentaRegistradaDto>;
+    string? Observacion = null,
+    Guid? ClienteId = null) : ICommand<VentaRegistradaDto>;
 
 public sealed class VenderValidator : AbstractValidator<VenderCommand>
 {
@@ -59,19 +66,22 @@ public sealed class VenderValidator : AbstractValidator<VenderCommand>
             pago.RuleFor(p => p.Metodo).IsInEnum();
             pago.RuleFor(p => p.Monto).GreaterThan(0);
             pago.RuleFor(p => p.Referencia).MaximumLength(100);
+            pago.RuleFor(p => p.Recibido).GreaterThan(0).When(p => p.Recibido.HasValue);
         });
     }
 }
 
 /// <summary>
 /// Registra una venta. Orden de las operaciones (Inventario y Ventas tienen bases lógicas separadas):
-///  1. Se valida todo en memoria (precios, totales, pagos) sin tocar nada.
+///  1. Se valida todo en memoria (precios, totales, pagos, cupo de crédito, puntos) sin tocar nada.
 ///  2. Inventario descuenta el stock (su propia transacción). Si no alcanza, no se guarda nada.
-///  3. Ventas guarda la venta con su número consecutivo.
+///  3. En UNA transacción: la venta con su número, la deuda y los puntos del cliente y su estado de cuenta.
 ///  Si el paso 3 falla, el stock descontado se devuelve automáticamente (compensación).
 /// </summary>
 internal sealed class VenderHandler(
     IVentasRepositorio repositorio,
+    IClientesRepositorio clientes,
+    IConfiguracionVentasRepositorio configuraciones,
     IVentasUnitOfWork unitOfWork,
     ICatalogoApi catalogo,
     IInventarioApi inventario,
@@ -95,14 +105,25 @@ internal sealed class VenderHandler(
                 return Error.NotFound("variante.no_encontrada", $"El producto {id} no existe en el catálogo.");
         }
 
+        var cliente = await ResolverClienteAsync(command.ClienteId, ct);
+        if (cliente.IsFailure)
+            return cliente.Error;
+
+        var (clienteId, esGeneral, clienteVenta) = cliente.Value;
+        var configuracion = await configuraciones.ObtenerOCrearAsync(ct);
+
         var ventaId = Guid.CreateVersion7();
+        var ahora = reloj.GetUtcNow();
         Venta venta;
 
         try
         {
             venta = Venta.Crear(
-                ventaId, command.AlmacenId, reloj.GetUtcNow(),
-                command.ClienteNombre, command.ClienteDocumento, command.Observacion);
+                ventaId, command.AlmacenId, ahora,
+                esGeneral ? command.ClienteNombre : clienteVenta!.Nombre,
+                esGeneral ? command.ClienteDocumento : clienteVenta!.Documento,
+                command.Observacion,
+                clienteId);
 
             for (var i = 0; i < command.Lineas.Count; i++)
             {
@@ -117,6 +138,16 @@ internal sealed class VenderHandler(
                     return Error.Validation("venta.lotes_no_soportado",
                         $"Línea {n}: '{info.Sku}' maneja lotes y la venta con lotes aún no está disponible.");
 
+                if (linea.EsObsequio)
+                {
+                    if (!info.EsObsequiable)
+                        return Error.Validation("venta.obsequio_no_permitido",
+                            $"Línea {n}: '{info.Nombre}' no pertenece a una categoría de obsequios.");
+
+                    venta.AgregarObsequio(info.VarianteId, info.Sku, info.Nombre, linea.Cantidad, info.ManejaInventario);
+                    continue;
+                }
+
                 var precio = linea.PrecioUnitario ?? info.PrecioBase;
                 if (precio <= 0)
                     return Error.Validation("venta.sin_precio",
@@ -128,9 +159,32 @@ internal sealed class VenderHandler(
             }
 
             foreach (var pago in command.Pagos)
-                venta.AgregarPago(pago.Metodo, pago.Monto, pago.Referencia);
+                venta.AgregarPago(pago.Metodo, pago.Monto, pago.Referencia, pago.Recibido);
 
             venta.ValidarParaCompletar();
+
+            // Crédito y puntos: validación previa (se vuelven a verificar con el cliente bloqueado en el paso 3)
+            var credito = venta.PagadoACredito;
+            var puntosRedimidos = venta.PagadoConPuntos > 0 ? configuracion.PuntosParaPagar(venta.PagadoConPuntos) : 0;
+
+            if ((credito > 0 || puntosRedimidos > 0) && esGeneral)
+                return Error.Validation("venta.requiere_cliente",
+                    "Para vender a crédito o pagar con puntos, selecciona un cliente registrado.");
+
+            if (clienteVenta is not null)
+            {
+                if (credito > 0 && clienteVenta.SaldoDeuda + credito > clienteVenta.CupoCredito)
+                    return Error.Validation("cliente.cupo_insuficiente",
+                        $"El crédito de {credito:N0} supera el cupo disponible de {clienteVenta.Nombre} " +
+                        $"({clienteVenta.CupoDisponible:N0} de {clienteVenta.CupoCredito:N0}).");
+
+                if (puntosRedimidos > clienteVenta.SaldoPuntos)
+                    return Error.Validation("puntos.insuficientes",
+                        $"{clienteVenta.Nombre} tiene {clienteVenta.SaldoPuntos:N0} puntos y se necesitan {puntosRedimidos:N0}.");
+            }
+
+            var puntosGanados = esGeneral ? 0 : configuracion.CalcularPuntosGanados(venta.PagadoEnDinero);
+            venta.RegistrarPuntos(puntosGanados, puntosRedimidos);
         }
         catch (DomainException ex)
         {
@@ -152,17 +206,42 @@ internal sealed class VenderHandler(
             costos = salida.Value.CostoUnitarioPorVariante;
         }
 
-        // ---- 3. Guardar la venta ----
+        // ---- 3. Guardar la venta, la deuda y los puntos (todo o nada) ----
         try
         {
             await using var transaccion = await unitOfWork.IniciarTransaccionAsync(ct);
 
             var numero = await repositorio.SiguienteNumeroAsync(ct);
             venta.Completar(numero, movimientoId, costos);
-
             repositorio.Agregar(venta);
+
+            if (!esGeneral && (venta.PagadoACredito > 0 || venta.PuntosGanados > 0 || venta.PuntosRedimidos > 0))
+            {
+                // Bloqueado: dos ventas simultáneas al mismo cliente no pueden pasarse del cupo ni gastar los mismos puntos
+                var bloqueado = await clientes.ObtenerParaActualizarAsync(clienteId, ct)
+                    ?? throw new DomainException("cliente.no_encontrado", "El cliente ya no existe.");
+
+                if (venta.PagadoACredito > 0) bloqueado.CargarCredito(venta.PagadoACredito);
+                if (venta.PuntosRedimidos > 0) bloqueado.RedimirPuntos(venta.PuntosRedimidos);
+                bloqueado.SumarPuntos(venta.PuntosGanados);
+
+                clientes.Agregar(MovimientoCliente.Registrar(
+                    bloqueado, TipoMovimientoCliente.Venta, numero, ahora,
+                    deuda: venta.PagadoACredito,
+                    puntos: venta.PuntosGanados - venta.PuntosRedimidos,
+                    ventaId: venta.Id));
+            }
+
             await unitOfWork.SaveChangesAsync(ct);
             await transaccion.ConfirmarAsync(ct);
+        }
+        catch (DomainException ex)
+        {
+            // Algo cambió entre la validación y el guardado (ej. otra venta usó el cupo): se devuelve el stock
+            if (movimientoId is not null)
+                await CompensarAsync(command.AlmacenId, ventaId, lineasInventario);
+
+            return Error.Validation(ex.Code, ex.Message);
         }
         catch (Exception ex) when (movimientoId is not null)
         {
@@ -185,8 +264,44 @@ internal sealed class VenderHandler(
             }
         }
 
-        return new VentaRegistradaDto(venta.Id, venta.Numero!, venta.Total, alertas);
+        return new VentaRegistradaDto(
+            venta.Id, venta.Numero!, venta.Total, alertas,
+            Cambio: venta.Pagos.Sum(p => p.Cambio),
+            PuntosGanados: venta.PuntosGanados,
+            PuntosRedimidos: venta.PuntosRedimidos);
     }
+
+    /// <summary>
+    /// El cliente de la venta: el indicado (debe existir y estar activo) o el cliente general,
+    /// que se crea la primera vez si el negocio aún no lo tiene.
+    /// </summary>
+    private async Task<Result<ClienteDeVenta>> ResolverClienteAsync(Guid? clienteId, CancellationToken ct)
+    {
+        if (clienteId is { } id)
+        {
+            var cliente = await clientes.ObtenerSinBloquearAsync(id, ct);
+            if (cliente is null)
+                return Error.NotFound("cliente.no_encontrado", "El cliente seleccionado no existe.");
+            if (!cliente.Activo)
+                return Error.Validation("cliente.inactivo", $"El cliente '{cliente.Nombre}' está inactivo.");
+
+            return cliente.EsGeneral
+                ? new ClienteDeVenta(cliente.Id, EsGeneral: true, Cliente: null)
+                : new ClienteDeVenta(cliente.Id, EsGeneral: false, Cliente: cliente);
+        }
+
+        var general = await clientes.ObtenerClienteGeneralAsync(ct);
+        if (general is null)
+        {
+            general = Cliente.CrearGeneral();
+            clientes.Agregar(general);   // se guarda junto con la venta
+        }
+
+        return new ClienteDeVenta(general.Id, EsGeneral: true, Cliente: null);
+    }
+
+    /// <param name="Cliente">Datos del cliente registrado (sin rastrear); null si es el cliente general.</param>
+    private sealed record ClienteDeVenta(Guid Id, bool EsGeneral, Cliente? Cliente);
 
     private async Task CompensarAsync(Guid almacenId, Guid ventaId, IReadOnlyList<LineaDeSalida> lineas)
     {

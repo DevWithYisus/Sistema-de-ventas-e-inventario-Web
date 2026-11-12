@@ -32,10 +32,13 @@ public sealed class VentaDetalle : TenantEntity
     /// <summary>false en servicios (ej. peluquería): no descuentan inventario.</summary>
     public bool AfectaInventario { get; private set; }
 
+    /// <summary>Se entregó gratis: sale del inventario y su costo es un gasto, pero no suma a la venta.</summary>
+    public bool EsObsequio { get; private set; }
+
     internal static VentaDetalle Crear(
         Guid ventaId, Guid varianteId, string sku, string descripcion,
         decimal cantidad, decimal precioUnitario,
-        decimal descuentoPorcentaje, decimal impuestoPorcentaje, bool afectaInventario)
+        decimal descuentoPorcentaje, decimal impuestoPorcentaje, bool afectaInventario, bool esObsequio = false)
     {
         if (varianteId == Guid.Empty)
             throw new DomainException("venta.variante_requerida", "Cada línea necesita un producto.");
@@ -67,7 +70,8 @@ public sealed class VentaDetalle : TenantEntity
             Descuento = descuento,
             Impuesto = impuesto,
             Total = baseGravable + impuesto,
-            AfectaInventario = afectaInventario
+            AfectaInventario = afectaInventario,
+            EsObsequio = esObsequio
         };
     }
 

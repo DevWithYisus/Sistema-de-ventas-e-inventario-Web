@@ -3,7 +3,9 @@ using Core.Application.Messaging;
 using Core.Domain.Seguridad;
 using SistemaVentas.Api.Http;
 using Ventas.Application;
+using Ventas.Application.Configuracion;
 using Ventas.Application.Consultas;
+using Ventas.Application.PuntoDeVenta;
 using Ventas.Application.Registro;
 using Ventas.Domain;
 
@@ -42,6 +44,38 @@ public static class VentasEndpoints
                 (await handler.HandleAsync(
                     new ListarVentasQuery(desde, hasta, estado, pagina ?? 1, tamanoPagina ?? 20), ct)).ToHttp())
             .RequireAuthorization(Permisos.VentasLeer);
+
+        // ---------- Punto de venta ----------
+        // Búsqueda por código de barras (lector), SKU o nombre. ?buscar=7701234&obsequios=false
+        grupo.MapGet("/productos", async (
+                string? buscar,
+                bool? obsequios,
+                IQueryHandler<BuscarProductosParaVentaQuery, IReadOnlyList<ProductoVentaDto>> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(new BuscarProductosParaVentaQuery(buscar ?? "", obsequios ?? false), ct)).ToHttp())
+            .RequireAuthorization(Permisos.VentasVender);
+
+        // El punto de venta la necesita (puntos y tirilla); solo el administrador la cambia
+        grupo.MapGet("/configuracion", async (
+                IQueryHandler<ObtenerConfiguracionVentasQuery, ConfiguracionVentasDto> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(new ObtenerConfiguracionVentasQuery(), ct)).ToHttp())
+            .RequireAuthorization(Permisos.VentasVender);
+
+        grupo.MapPut("/configuracion", async (
+                ActualizarConfiguracionVentasCommand comando,
+                ICommandHandler<ActualizarConfiguracionVentasCommand, ConfiguracionVentasDto> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(comando, ct)).ToHttp())
+            .RequireAuthorization(Permisos.ConfiguracionAdministrar);
+
+        // Para negocios creados antes del módulo de clientes: crea el cliente general y la configuración
+        grupo.MapPost("/inicializar", async (
+                InicializarVentasCommand comando,
+                ICommandHandler<InicializarVentasCommand, InicializacionVentasDto> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(comando, ct)).ToHttp())
+            .RequireAuthorization(Permisos.ConfiguracionAdministrar);
 
         grupo.MapPost("/{id:guid}/anular", async (
                 Guid id,

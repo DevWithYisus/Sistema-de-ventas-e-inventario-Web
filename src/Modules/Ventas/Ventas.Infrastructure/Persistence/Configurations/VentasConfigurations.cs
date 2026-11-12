@@ -28,9 +28,12 @@ internal sealed class VentaConfiguration : IEntityTypeConfiguration<Venta>
         b.HasMany(x => x.Pagos).WithOne().HasForeignKey(p => p.VentaId).OnDelete(DeleteBehavior.Restrict);
         b.Navigation(x => x.Pagos).UsePropertyAccessMode(PropertyAccessMode.Field);
 
+        b.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);
+
         b.HasIndex(x => new { x.TenantId, x.Numero }).IsUnique();
         b.HasIndex(x => new { x.TenantId, x.Fecha });
         b.HasIndex(x => new { x.TenantId, x.Estado, x.Fecha });
+        b.HasIndex(x => new { x.TenantId, x.ClienteId, x.Fecha });
     }
 }
 
@@ -67,8 +70,90 @@ internal sealed class PagoConfiguration : IEntityTypeConfiguration<Pago>
         b.Property(x => x.Metodo).HasConversion<string>().HasMaxLength(20).IsRequired();
         b.Property(x => x.Monto).HasPrecision(18, 4);
         b.Property(x => x.Referencia).HasMaxLength(100);
+        b.Property(x => x.Recibido).HasPrecision(18, 4);
 
         b.HasIndex(x => x.VentaId);
+    }
+}
+
+internal sealed class ClienteConfiguration : IEntityTypeConfiguration<Cliente>
+{
+    public void Configure(EntityTypeBuilder<Cliente> b)
+    {
+        b.ToTable("clientes");
+
+        b.Property(x => x.Nombre).HasMaxLength(150).IsRequired();
+        b.Property(x => x.Documento).HasMaxLength(30);
+        b.Property(x => x.Telefono).HasMaxLength(30);
+        b.Property(x => x.Direccion).HasMaxLength(200);
+        b.Property(x => x.ComplementoDireccion).HasMaxLength(200);
+        b.Property(x => x.Email).HasMaxLength(256);
+        b.Property(x => x.Notas).HasMaxLength(500);
+        b.Property(x => x.CupoCredito).HasPrecision(18, 4);
+        b.Property(x => x.SaldoDeuda).HasPrecision(18, 4);
+
+        b.HasIndex(x => new { x.TenantId, x.Nombre });
+        b.HasIndex(x => new { x.TenantId, x.Documento }).IsUnique()
+            .HasFilter("eliminado_en IS NULL AND documento IS NOT NULL");
+        // Un solo cliente general por negocio
+        b.HasIndex(x => x.TenantId).IsUnique()
+            .HasFilter("es_general AND eliminado_en IS NULL")
+            .HasDatabaseName("ux_clientes_general");
+    }
+}
+
+internal sealed class MovimientoClienteConfiguration : IEntityTypeConfiguration<MovimientoCliente>
+{
+    public void Configure(EntityTypeBuilder<MovimientoCliente> b)
+    {
+        b.ToTable("movimientos_cliente");
+
+        b.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(20).IsRequired();
+        b.Property(x => x.Documento).HasMaxLength(30).IsRequired();
+        b.Property(x => x.Deuda).HasPrecision(18, 4);
+        b.Property(x => x.SaldoDeuda).HasPrecision(18, 4);
+
+        b.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => new { x.ClienteId, x.Fecha });
+    }
+}
+
+internal sealed class AbonoConfiguration : IEntityTypeConfiguration<Abono>
+{
+    public void Configure(EntityTypeBuilder<Abono> b)
+    {
+        b.ToTable("abonos");
+
+        b.Property(x => x.Numero).HasMaxLength(30).IsRequired();
+        b.Property(x => x.Monto).HasPrecision(18, 4);
+        b.Property(x => x.Metodo).HasConversion<string>().HasMaxLength(20).IsRequired();
+        b.Property(x => x.Referencia).HasMaxLength(100);
+        b.Property(x => x.Observacion).HasMaxLength(250);
+        b.Property(x => x.Estado).HasConversion<string>().HasMaxLength(15).IsRequired();
+        b.Property(x => x.MotivoAnulacion).HasMaxLength(250);
+
+        b.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => new { x.TenantId, x.Numero }).IsUnique();
+        b.HasIndex(x => new { x.ClienteId, x.Fecha });
+    }
+}
+
+internal sealed class ConfiguracionVentasConfiguration : IEntityTypeConfiguration<ConfiguracionVentas>
+{
+    public void Configure(EntityTypeBuilder<ConfiguracionVentas> b)
+    {
+        b.ToTable("configuracion");
+
+        b.Property(x => x.MontoBasePuntos).HasPrecision(18, 4);
+        b.Property(x => x.ValorPunto).HasPrecision(18, 4);
+        b.Property(x => x.NombreComercial).HasMaxLength(150).IsRequired();
+        b.Property(x => x.Nit).HasMaxLength(30);
+        b.Property(x => x.Direccion).HasMaxLength(200);
+        b.Property(x => x.Telefono).HasMaxLength(30);
+        b.Property(x => x.MensajePie).HasMaxLength(250);
+
+        // Una sola configuración por negocio
+        b.HasIndex(x => x.TenantId).IsUnique();
     }
 }
 

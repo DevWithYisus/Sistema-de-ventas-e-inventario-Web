@@ -1,6 +1,7 @@
 using Core.Application.Messaging;
 using Core.Application.Results;
 using Core.Application.Validation;
+using Core.Domain;
 using FluentValidation;
 using Inventario.Contracts;
 using Microsoft.Extensions.Logging;
@@ -21,11 +22,13 @@ public sealed class AnularVentaValidator : AbstractValidator<AnularVentaCommand>
 }
 
 /// <summary>
-/// Anula una venta y devuelve su mercancía al almacén. La venta se bloquea mientras se procesa,
-/// así dos anulaciones simultáneas no devuelven el inventario dos veces.
+/// Anula una venta: devuelve su mercancía al almacén, le quita al cliente la deuda de esa venta,
+/// los puntos que ganó y le devuelve los que redimió. La venta y el cliente se bloquean mientras se procesa,
+/// así dos anulaciones simultáneas no devuelven nada dos veces.
 /// </summary>
 internal sealed class AnularVentaHandler(
     IVentasRepositorio repositorio,
+    IClientesRepositorio clientes,
     IVentasUnitOfWork unitOfWork,
     IInventarioApi inventario,
     TimeProvider reloj,
@@ -48,6 +51,32 @@ internal sealed class AnularVentaHandler(
             return Error.Conflict("venta.no_anulable", "La venta ya está anulada o no está completada.");
 
         var motivo = command.Motivo.Trim();
+        var ahora = reloj.GetUtcNow();
+
+        // Primero el cliente: si la deuda ya se abonó, no se puede anular y no hay que tocar el inventario
+        var credito = venta.PagadoACredito;
+        if (venta.ClienteId is { } clienteId && (credito > 0 || venta.PuntosGanados > 0 || venta.PuntosRedimidos > 0))
+        {
+            var cliente = await clientes.ObtenerParaActualizarAsync(clienteId, ct);
+            if (cliente is null)
+                return Error.NotFound("cliente.no_encontrado", "El cliente de la venta no existe.");
+
+            try
+            {
+                cliente.RevertirCredito(credito);
+                cliente.RevertirPuntos(venta.PuntosGanados, venta.PuntosRedimidos);
+            }
+            catch (DomainException ex)
+            {
+                return Error.Conflict(ex.Code, ex.Message);
+            }
+
+            clientes.Agregar(MovimientoCliente.Registrar(
+                cliente, TipoMovimientoCliente.AnulacionVenta, venta.Numero!, ahora,
+                deuda: -credito,
+                puntos: venta.PuntosRedimidos - venta.PuntosGanados,
+                ventaId: venta.Id));
+        }
 
         Guid? movimientoId = null;
         var lineas = LineasDeInventario.De(venta);
@@ -63,7 +92,7 @@ internal sealed class AnularVentaHandler(
 
         try
         {
-            venta.Anular(motivo, movimientoId, reloj.GetUtcNow());
+            venta.Anular(motivo, movimientoId, ahora);
             await unitOfWork.SaveChangesAsync(ct);
             await transaccion.ConfirmarAsync(ct);
         }

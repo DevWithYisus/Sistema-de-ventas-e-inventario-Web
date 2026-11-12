@@ -21,6 +21,10 @@ public sealed class VentasDbContext : TenantDbContext, IVentasUnitOfWork
     public DbSet<VentaDetalle> VentaDetalles => Set<VentaDetalle>();
     public DbSet<Pago> Pagos => Set<Pago>();
     public DbSet<Consecutivo> Consecutivos => Set<Consecutivo>();
+    public DbSet<Cliente> Clientes => Set<Cliente>();
+    public DbSet<MovimientoCliente> MovimientosCliente => Set<MovimientoCliente>();
+    public DbSet<Abono> Abonos => Set<Abono>();
+    public DbSet<ConfiguracionVentas> Configuraciones => Set<ConfiguracionVentas>();
 
     protected override void ConfigureModule(ModelBuilder modelBuilder)
     {

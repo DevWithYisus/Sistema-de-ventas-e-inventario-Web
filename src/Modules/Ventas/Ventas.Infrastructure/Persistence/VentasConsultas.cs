@@ -22,12 +22,20 @@ internal sealed class VentasConsultas(VentasDbContext db) : IVentasConsultas
                     .OrderBy(d => d.Id)
                     .Select(d => new VentaLineaDto(
                         d.VarianteId, d.Sku, d.Descripcion, d.Cantidad, d.PrecioUnitario,
-                        d.DescuentoPorcentaje, d.ImpuestoPorcentaje, d.Subtotal, d.Descuento, d.Impuesto, d.Total))
+                        d.DescuentoPorcentaje, d.ImpuestoPorcentaje, d.Subtotal, d.Descuento, d.Impuesto, d.Total,
+                        d.EsObsequio))
                     .ToList(),
                 v.Pagos
                     .OrderBy(p => p.Id)
-                    .Select(p => new PagoDto(p.Metodo, p.Monto, p.Referencia))
-                    .ToList()))
+                    .Select(p => new PagoDto(
+                        p.Metodo, p.Monto, p.Referencia, p.Recibido,
+                        p.Recibido == null ? 0m : p.Recibido.Value - p.Monto))
+                    .ToList(),
+                v.ClienteId,
+                v.PuntosGanados,
+                v.PuntosRedimidos,
+                db.Clientes.Where(c => c.Id == v.ClienteId && !c.EsGeneral).Select(c => (int?)c.SaldoPuntos).FirstOrDefault(),
+                db.Clientes.Where(c => c.Id == v.ClienteId && !c.EsGeneral).Select(c => (decimal?)c.SaldoDeuda).FirstOrDefault()))
             .FirstOrDefaultAsync(ct);
 
     public async Task<PaginaDto<VentaResumenDto>> ListarVentasAsync(
@@ -107,6 +115,7 @@ internal sealed class VentasConsultas(VentasDbContext db) : IVentasConsultas
         => await (
                 from d in db.VentaDetalles.AsNoTracking()
                 join v in Completadas(desde, hasta) on d.VentaId equals v.Id
+                where !d.EsObsequio
                 select d)
             .GroupBy(d => d.VarianteId)
             .Select(g => new
@@ -134,4 +143,16 @@ internal sealed class VentasConsultas(VentasDbContext db) : IVentasConsultas
             .OrderByDescending(x => x.Monto)
             .Select(x => new VentasPorMetodoDto(x.Metodo, x.Pagos, x.Monto))
             .ToListAsync(ct);
+
+    public async Task<decimal> CostoObsequiosAsync(DateTimeOffset desde, DateTimeOffset hasta, CancellationToken ct)
+    {
+        var costo = await (
+                from d in db.VentaDetalles.AsNoTracking()
+                join v in Completadas(desde, hasta) on d.VentaId equals v.Id
+                where d.EsObsequio
+                select (decimal?)(d.Cantidad * d.CostoUnitario))
+            .SumAsync(ct);
+
+        return Math.Round(costo ?? 0m, 2);
+    }
 }

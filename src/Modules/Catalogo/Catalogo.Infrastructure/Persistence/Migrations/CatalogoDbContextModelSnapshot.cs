@@ -55,6 +55,10 @@ namespace Catalogo.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("eliminado_en");
 
+                    b.Property<bool>("EsParaObsequios")
+                        .HasColumnType("boolean")
+                        .HasColumnName("es_para_obsequios");
+
                     b.Property<DateTimeOffset?>("ModificadoEn")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("modificado_en");

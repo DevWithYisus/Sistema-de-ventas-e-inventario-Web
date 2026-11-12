@@ -2,6 +2,9 @@ using Catalogo.Domain;
 
 namespace Catalogo.Application;
 
+public sealed record CategoriaDto(
+    Guid Id, string Codigo, string Nombre, Guid? CategoriaPadreId, bool EsParaObsequios, bool Activo);
+
 public sealed record UnidadMedidaDto(Guid Id, string Codigo, string Nombre, bool PermiteDecimales, bool Activo);
 
 public sealed record VarianteDto(

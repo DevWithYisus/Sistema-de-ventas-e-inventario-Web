@@ -20,6 +20,9 @@ public static class VentasModule
         services.AddScoped<IVentasUnitOfWork>(sp => sp.GetRequiredService<VentasDbContext>());
         services.AddScoped<IVentasRepositorio, VentasRepositorio>();
         services.AddScoped<IVentasConsultas, VentasConsultas>();
+        services.AddScoped<IClientesRepositorio, ClientesRepositorio>();
+        services.AddScoped<IClientesConsultas, ClientesConsultas>();
+        services.AddScoped<IConfiguracionVentasRepositorio, ConfiguracionVentasRepositorio>();
 
         services.AddApplicationHandlers(typeof(IVentasRepositorio).Assembly);
 

@@ -1,0 +1,308 @@
+# Clientes, crédito, puntos, abonos y obsequios. Ejecuta las peticiones EN ORDEN.
+# Requisitos: migraciones aplicadas, sql/02 y sql/04 ejecutados, y sesión iniciada DESPUÉS del sql/04.
+@host = http://localhost:5248
+
+### 0. Iniciar sesión (administrador)
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-a", "usuario": "admin", "password": "Admin12345" }
+
+### 1. Inicializar ventas (solo negocios creados antes de este módulo): crea el cliente general y la configuración
+POST {{host}}/api/ventas/inicializar
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "nombreComercial": "Minino's Pet Shop" }
+
+### 2. Ver la configuración: por defecto cada $1.000 da 1 punto y cada punto vale $10
+GET {{host}}/api/ventas/configuracion
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 3. Ajustar la configuración (puntos y datos de la tirilla)
+PUT {{host}}/api/ventas/configuracion
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "puntosActivo": true,
+  "montoBasePuntos": 1000,
+  "puntosPorMontoBase": 1,
+  "valorPunto": 10,
+  "nombreComercial": "Minino's Pet Shop",
+  "nit": "900.123.456-7",
+  "direccion": "Calle 10 # 20-30",
+  "telefono": "300 123 4567",
+  "mensajePie": "¡Gracias por consentir a tu mascota!",
+  "anchoTirillaMm": 80
+}
+
+### ---------- Preparar productos ----------
+
+### 4. Almacén para las pruebas
+# @name almacen
+POST {{host}}/api/inventario/almacenes
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "codigo": "PDV-{{$randomInt 1000 9999}}", "nombre": "Punto de venta de prueba" }
+
+### 5. Unidad de medida
+# @name unidad
+POST {{host}}/api/catalogo/unidades-medida
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "codigo": "U{{$randomInt 1000 9999}}", "nombre": "Unidad", "permiteDecimales": false }
+
+### 6. Categoría de obsequios
+# @name categoriaObsequios
+POST {{host}}/api/catalogo/categorias
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "codigo": "OBS-{{$randomInt 100 999}}", "nombre": "Obsequios", "esParaObsequios": true }
+
+### 7. Producto para vender: alimento $95.000 (costo $70.000) con código de barras
+# @name alimento
+POST {{host}}/api/catalogo/productos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "nombre": "Alimento gato adulto 3 kg",
+  "sku": "GATO-{{$randomInt 10000 99999}}",
+  "codigoBarras": "770{{$randomInt 1000000 9999999}}",
+  "unidadBaseId": "{{unidad.response.body.$.id}}",
+  "precio": 95000,
+  "costo": 70000
+}
+
+### 8. Producto obsequio: snack (costo $2.500) en la categoría de obsequios
+# @name snack
+POST {{host}}/api/catalogo/productos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "nombre": "Snack de regalo",
+  "sku": "SNACK-{{$randomInt 10000 99999}}",
+  "unidadBaseId": "{{unidad.response.body.$.id}}",
+  "categoriaId": "{{categoriaObsequios.response.body.$.id}}",
+  "precio": 4000,
+  "costo": 2500
+}
+
+### 9. Detalle de los productos (ids de las variantes)
+# @name detalleAlimento
+GET {{host}}/api/catalogo/productos/{{alimento.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+###
+# @name detalleSnack
+GET {{host}}/api/catalogo/productos/{{snack.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 10. Entrada de inventario: 20 alimentos y 50 snacks
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "tipoMovimiento": "COMPRA",
+  "almacenDestinoId": "{{almacenes.response.body.$[0].id}}",
+  "lineas": [
+    { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 20, "costoUnitario": 70000 },
+    { "varianteId": "{{detalleSnack.response.body.$.variantes[0].id}}", "cantidad": 50, "costoUnitario": 2500 }
+  ]
+}
+
+### ---------- Punto de venta: búsqueda ----------
+
+### 11. Buscar por código de barras (como el lector) -> coincidenciaExacta: true y el stock disponible
+GET {{host}}/api/ventas/productos?buscar={{detalleAlimento.response.body.$.variantes[0].codigoBarras}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 12. Buscar por nombre
+GET {{host}}/api/ventas/productos?buscar=gato
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 13. Solo productos que se pueden regalar
+GET {{host}}/api/ventas/productos?buscar=snack&obsequios=true
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### ---------- Clientes ----------
+
+### 14. Crear cliente
+# @name cliente
+POST {{host}}/api/clientes
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "nombre": "Laura Martínez",
+  "documento": "{{$randomInt 10000000 99999999}}",
+  "telefono": "310 555 1234",
+  "direccion": "Carrera 45 # 12-34",
+  "complementoDireccion": "Torre 2, apto 501"
+}
+
+### 15. Asignarle cupo de crédito de $200.000
+PUT {{host}}/api/clientes/{{cliente.response.body.$.id}}/cupo
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "cupo": 200000 }
+
+### 16. Listar clientes (el cliente general aparece primero)
+GET {{host}}/api/clientes?buscar=laura
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### ---------- Ventas ----------
+
+### 17. Venta al cliente general en efectivo: paga con $100.000 -> cambio 5000, sin puntos
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "lineas": [ { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
+  "pagos": [ { "metodo": "Efectivo", "monto": 95000, "recibido": 100000 } ]
+}
+
+### 18. Venta a Laura: 2 alimentos ($190.000) + 1 snack de obsequio.
+#     Paga $90.000 con tarjeta y fía $100.000 -> gana 90 puntos (solo por lo pagado), debe 100.000
+# @name ventaCredito
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "clienteId": "{{cliente.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 2 },
+    { "varianteId": "{{detalleSnack.response.body.$.variantes[0].id}}", "cantidad": 1, "esObsequio": true }
+  ],
+  "pagos": [
+    { "metodo": "Tarjeta", "monto": 90000, "referencia": "Voucher 4521" },
+    { "metodo": "Credito", "monto": 100000 }
+  ]
+}
+
+### 19. Ver la venta (para la tirilla): obsequio con total 0, puntos y saldos del cliente
+GET {{host}}/api/ventas/{{ventaCredito.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 20. Intentar fiar otros $150.000 -> 400 cupo insuficiente (debe 100.000 de 200.000)
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "clienteId": "{{cliente.response.body.$.id}}",
+  "lineas": [ { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 2 } ],
+  "pagos": [ { "metodo": "Credito", "monto": 190000 } ]
+}
+
+### 21. Fiar al cliente general -> 400 (requiere un cliente registrado)
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "lineas": [ { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
+  "pagos": [ { "metodo": "Credito", "monto": 95000 } ]
+}
+
+### 22. Regalar un producto que NO es de obsequios -> 400
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "lineas": [
+    { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1 },
+    { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1, "esObsequio": true }
+  ],
+  "pagos": [ { "metodo": "Efectivo", "monto": 95000 } ]
+}
+
+### ---------- Abonos y puntos ----------
+
+### 23. Abono de $60.000 por transferencia -> debe 40.000, gana 60 puntos (en total 150)
+# @name abono
+POST {{host}}/api/clientes/{{cliente.response.body.$.id}}/abonos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "monto": 60000, "metodo": "Transferencia", "referencia": "Nequi 123" }
+
+### 24. Comprobante del abono
+GET {{host}}/api/abonos/{{abono.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 25. Abonar más de lo que debe -> 400
+POST {{host}}/api/clientes/{{cliente.response.body.$.id}}/abonos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "monto": 999999, "metodo": "Efectivo" }
+
+### 26. Pagar con puntos: $1.000 = 100 puntos (punto a $10) y el resto en efectivo
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "clienteId": "{{cliente.response.body.$.id}}",
+  "lineas": [ { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
+  "pagos": [
+    { "metodo": "Puntos", "monto": 1000 },
+    { "metodo": "Efectivo", "monto": 94000 }
+  ]
+}
+
+### 27. Estado de cuenta: cada compra, abono y movimiento de puntos con su saldo
+GET {{host}}/api/clientes/{{cliente.response.body.$.id}}/estado-de-cuenta
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 28. Detalle del cliente: deuda, cupo disponible, puntos y cuánto valen en pesos
+GET {{host}}/api/clientes/{{cliente.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### ---------- Anulaciones ----------
+
+### 29. Anular la venta a crédito -> 409: ya abonó parte de esa deuda (hay que anular el abono primero)
+POST {{host}}/api/ventas/{{ventaCredito.response.body.$.id}}/anular
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "motivo": "Prueba de anulación" }
+
+### 30. Anular el abono -> la deuda vuelve a 100.000 y se quitan sus 60 puntos
+POST {{host}}/api/abonos/{{abono.response.body.$.id}}/anular
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "motivo": "Abono registrado por error" }
+
+### 31. Ahora sí anular la venta a crédito -> 200: deuda 0, inventario devuelto (incluido el obsequio).
+#     Se le quitan los 90 puntos que ganó con esa venta. Como ya usó puntos en la venta 26, su saldo
+#     puede quedar negativo: es lo correcto (no puede quedarse con puntos de una compra anulada)
+#     y se compensa con sus próximas compras.
+POST {{host}}/api/ventas/{{ventaCredito.response.body.$.id}}/anular
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "motivo": "Prueba de anulación" }
+
+### 32. Dashboard: cartera por cobrar y costo de obsequios del mes
+GET {{host}}/api/dashboard
+Authorization: Bearer {{login.response.body.$.accessToken}}
