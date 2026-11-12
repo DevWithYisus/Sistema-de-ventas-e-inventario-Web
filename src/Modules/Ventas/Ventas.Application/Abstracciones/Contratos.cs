@@ -42,6 +42,58 @@ public interface IClientesRepositorio
     Task<Abono?> ObtenerAbonoParaAnularAsync(Guid abonoId, CancellationToken ct);
 }
 
+/// <summary>Caja: sesiones y movimientos de efectivo (mismo DbContext que ventas, abonos y gastos).</summary>
+public interface ICajaRepositorio
+{
+    void Agregar(SesionCaja sesion);
+    void Agregar(MovimientoCaja movimiento);
+
+    /// <summary>La caja abierta, sin bloquear ni rastrear (para validar antes de tocar el inventario).</summary>
+    Task<SesionCaja?> ObtenerAbiertaSinBloquearAsync(CancellationToken ct);
+
+    /// <summary>
+    /// La caja abierta, bloqueada dentro de la transacción actual.
+    /// Compartido (ventas, abonos, gastos): pueden ocurrir a la vez, pero nadie puede cerrar la caja mientras tanto.
+    /// Exclusivo (cerrar, retiros): espera a que terminen las operaciones en curso.
+    /// </summary>
+    Task<SesionCaja?> ObtenerAbiertaBloqueadaAsync(bool exclusivo, CancellationToken ct);
+
+    /// <summary>Suma de los movimientos (+ entradas, − salidas) de la sesión.</summary>
+    Task<decimal> SumaMovimientosAsync(Guid sesionId, CancellationToken ct);
+}
+
+public interface IGastosRepositorio
+{
+    void Agregar(Gasto gasto);
+    void Agregar(CategoriaGasto categoria);
+
+    Task<CategoriaGasto?> ObtenerCategoriaAsync(Guid categoriaId, CancellationToken ct);
+    Task<bool> CategoriaNombreExisteAsync(string nombre, Guid? excluirId, CancellationToken ct);
+    Task<bool> HayCategoriasAsync(CancellationToken ct);
+
+    /// <summary>Bloquea el gasto (FOR UPDATE). Debe llamarse dentro de una transacción.</summary>
+    Task<Gasto?> ObtenerParaAnularAsync(Guid gastoId, CancellationToken ct);
+}
+
+public interface ICajaConsultas
+{
+    Task<ResumenCajaDto?> ResumenAsync(Guid sesionId, CancellationToken ct);
+    Task<IReadOnlyList<MovimientoCajaDto>> MovimientosAsync(Guid sesionId, CancellationToken ct);
+    Task<PaginaDto<SesionCajaResumenDto>> ListarSesionesAsync(int pagina, int tamanoPagina, CancellationToken ct);
+}
+
+public interface IGastosConsultas
+{
+    Task<IReadOnlyList<CategoriaGastoDto>> CategoriasAsync(bool incluirInactivas, CancellationToken ct);
+
+    Task<ListadoGastosDto> ListarAsync(
+        DateOnly? desde, DateOnly? hasta, Guid? categoriaId, bool incluirAnulados,
+        int pagina, int tamanoPagina, CancellationToken ct);
+
+    /// <summary>Total de gastos activos entre dos fechas (inclusive).</summary>
+    Task<decimal> TotalAsync(DateOnly desde, DateOnly hasta, CancellationToken ct);
+}
+
 public interface IConfiguracionVentasRepositorio
 {
     void Agregar(ConfiguracionVentas configuracion);

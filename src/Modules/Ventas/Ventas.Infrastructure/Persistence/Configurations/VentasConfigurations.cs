@@ -28,8 +28,12 @@ internal sealed class VentaConfiguration : IEntityTypeConfiguration<Venta>
         b.HasMany(x => x.Pagos).WithOne().HasForeignKey(p => p.VentaId).OnDelete(DeleteBehavior.Restrict);
         b.Navigation(x => x.Pagos).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        b.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);
+        b.Property(x => x.VendedorNombre).HasMaxLength(150);
 
+        b.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<SesionCaja>().WithMany().HasForeignKey(x => x.SesionCajaId).OnDelete(DeleteBehavior.Restrict);
+
+        b.HasIndex(x => x.SesionCajaId);
         b.HasIndex(x => new { x.TenantId, x.Numero }).IsUnique();
         b.HasIndex(x => new { x.TenantId, x.Fecha });
         b.HasIndex(x => new { x.TenantId, x.Estado, x.Fecha });
@@ -131,10 +135,13 @@ internal sealed class AbonoConfiguration : IEntityTypeConfiguration<Abono>
         b.Property(x => x.Observacion).HasMaxLength(250);
         b.Property(x => x.Estado).HasConversion<string>().HasMaxLength(15).IsRequired();
         b.Property(x => x.MotivoAnulacion).HasMaxLength(250);
+        b.Property(x => x.RegistradoPorNombre).HasMaxLength(150);
 
         b.HasOne<Cliente>().WithMany().HasForeignKey(x => x.ClienteId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<SesionCaja>().WithMany().HasForeignKey(x => x.SesionCajaId).OnDelete(DeleteBehavior.Restrict);
         b.HasIndex(x => new { x.TenantId, x.Numero }).IsUnique();
         b.HasIndex(x => new { x.ClienteId, x.Fecha });
+        b.HasIndex(x => x.SesionCajaId);
     }
 }
 
@@ -164,5 +171,82 @@ internal sealed class ConsecutivoConfiguration : IEntityTypeConfiguration<Consec
         b.ToTable("consecutivos");
         b.Property(x => x.Clave).HasMaxLength(50).IsRequired();
         b.HasIndex(x => new { x.TenantId, x.Clave }).IsUnique();
+    }
+}
+
+internal sealed class SesionCajaConfiguration : IEntityTypeConfiguration<SesionCaja>
+{
+    public void Configure(EntityTypeBuilder<SesionCaja> b)
+    {
+        b.ToTable("sesiones_caja");
+
+        b.Property(x => x.Numero).HasMaxLength(30).IsRequired();
+        b.Property(x => x.Estado).HasConversion<string>().HasMaxLength(15).IsRequired();
+        b.Property(x => x.AbiertaPorNombre).HasMaxLength(150);
+        b.Property(x => x.CerradaPorNombre).HasMaxLength(150);
+        b.Property(x => x.ObservacionApertura).HasMaxLength(250);
+        b.Property(x => x.ObservacionCierre).HasMaxLength(250);
+        b.Property(x => x.MontoInicial).HasPrecision(18, 4);
+        b.Property(x => x.EfectivoEsperado).HasPrecision(18, 4);
+        b.Property(x => x.EfectivoContado).HasPrecision(18, 4);
+        b.Property(x => x.Diferencia).HasPrecision(18, 4);
+
+        b.HasIndex(x => new { x.TenantId, x.Numero }).IsUnique();
+        b.HasIndex(x => new { x.TenantId, x.AbiertaEn });
+        // Una sola caja abierta por negocio
+        b.HasIndex(x => x.TenantId).IsUnique()
+            .HasFilter("estado = 'Abierta'")
+            .HasDatabaseName("ux_sesiones_caja_abierta");
+    }
+}
+
+internal sealed class MovimientoCajaConfiguration : IEntityTypeConfiguration<MovimientoCaja>
+{
+    public void Configure(EntityTypeBuilder<MovimientoCaja> b)
+    {
+        b.ToTable("movimientos_caja");
+
+        b.Property(x => x.Tipo).HasConversion<string>().HasMaxLength(20).IsRequired();
+        b.Property(x => x.Monto).HasPrecision(18, 4);
+        b.Property(x => x.Documento).HasMaxLength(30);
+        b.Property(x => x.Descripcion).HasMaxLength(250);
+
+        b.HasOne<SesionCaja>().WithMany().HasForeignKey(x => x.SesionCajaId).OnDelete(DeleteBehavior.Restrict);
+        b.HasIndex(x => new { x.SesionCajaId, x.Fecha });
+    }
+}
+
+internal sealed class CategoriaGastoConfiguration : IEntityTypeConfiguration<CategoriaGasto>
+{
+    public void Configure(EntityTypeBuilder<CategoriaGasto> b)
+    {
+        b.ToTable("categorias_gasto");
+        b.Property(x => x.Nombre).HasMaxLength(80).IsRequired();
+        b.HasIndex(x => new { x.TenantId, x.Nombre }).IsUnique().HasFilter("eliminado_en IS NULL");
+    }
+}
+
+internal sealed class GastoConfiguration : IEntityTypeConfiguration<Gasto>
+{
+    public void Configure(EntityTypeBuilder<Gasto> b)
+    {
+        b.ToTable("gastos");
+
+        b.Property(x => x.Numero).HasMaxLength(30).IsRequired();
+        b.Property(x => x.Descripcion).HasMaxLength(250).IsRequired();
+        b.Property(x => x.Monto).HasPrecision(18, 4);
+        b.Property(x => x.Metodo).HasConversion<string>().HasMaxLength(20).IsRequired();
+        b.Property(x => x.Referencia).HasMaxLength(100);
+        b.Property(x => x.Proveedor).HasMaxLength(150);
+        b.Property(x => x.RegistradoPorNombre).HasMaxLength(150);
+        b.Property(x => x.Estado).HasConversion<string>().HasMaxLength(15).IsRequired();
+        b.Property(x => x.MotivoAnulacion).HasMaxLength(250);
+
+        b.HasOne<CategoriaGasto>().WithMany().HasForeignKey(x => x.CategoriaId).OnDelete(DeleteBehavior.Restrict);
+        b.HasOne<SesionCaja>().WithMany().HasForeignKey(x => x.SesionCajaId).OnDelete(DeleteBehavior.Restrict);
+
+        b.HasIndex(x => new { x.TenantId, x.Numero }).IsUnique();
+        b.HasIndex(x => new { x.TenantId, x.Fecha });
+        b.HasIndex(x => x.SesionCajaId);
     }
 }

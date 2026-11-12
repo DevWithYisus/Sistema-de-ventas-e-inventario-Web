@@ -14,6 +14,7 @@ public sealed class ContextoDePeticion(IHttpContextAccessor accessor)
 
     public Guid TenantId => _negocioForzado ?? LeerGuid("tenant_id") ?? Guid.Empty;
     public Guid? UserId => LeerGuid("sub");
+    public string? Nombre => accessor.HttpContext?.User.FindFirst("name")?.Value;
 
     /// <summary>Solo para inicio de sesión y alta de negocios, donde todavía no hay token.</summary>
     public void Establecer(Guid negocioId) => _negocioForzado = negocioId;

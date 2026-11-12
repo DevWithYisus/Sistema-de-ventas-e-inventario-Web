@@ -38,6 +38,13 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
   "anchoTirillaMm": 80
 }
 
+### Abrir la caja (vender exige caja abierta). Si responde 409 es que ya estaba abierta: sigue.
+POST {{host}}/api/caja/abrir
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "montoInicial": 200000 }
+
 ### ---------- Preparar productos ----------
 
 ### 4. Almacén para las pruebas
@@ -111,7 +118,7 @@ Authorization: Bearer {{login.response.body.$.accessToken}}
 
 {
   "tipoMovimiento": "COMPRA",
-  "almacenDestinoId": "{{almacenes.response.body.$[0].id}}",
+  "almacenDestinoId": "{{almacen.response.body.$.id}}",
   "lineas": [
     { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 20, "costoUnitario": 70000 },
     { "varianteId": "{{detalleSnack.response.body.$.variantes[0].id}}", "cantidad": 50, "costoUnitario": 2500 }
@@ -167,7 +174,7 @@ Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.accessToken}}
 
 {
-  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "almacenId": "{{almacen.response.body.$.id}}",
   "lineas": [ { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
   "pagos": [ { "metodo": "Efectivo", "monto": 95000, "recibido": 100000 } ]
 }
@@ -180,7 +187,7 @@ Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.accessToken}}
 
 {
-  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "almacenId": "{{almacen.response.body.$.id}}",
   "clienteId": "{{cliente.response.body.$.id}}",
   "lineas": [
     { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 2 },
@@ -202,7 +209,7 @@ Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.accessToken}}
 
 {
-  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "almacenId": "{{almacen.response.body.$.id}}",
   "clienteId": "{{cliente.response.body.$.id}}",
   "lineas": [ { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 2 } ],
   "pagos": [ { "metodo": "Credito", "monto": 190000 } ]
@@ -214,7 +221,7 @@ Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.accessToken}}
 
 {
-  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "almacenId": "{{almacen.response.body.$.id}}",
   "lineas": [ { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
   "pagos": [ { "metodo": "Credito", "monto": 95000 } ]
 }
@@ -225,7 +232,7 @@ Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.accessToken}}
 
 {
-  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "almacenId": "{{almacen.response.body.$.id}}",
   "lineas": [
     { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1 },
     { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1, "esObsequio": true }
@@ -260,7 +267,7 @@ Content-Type: application/json
 Authorization: Bearer {{login.response.body.$.accessToken}}
 
 {
-  "almacenId": "{{almacenes.response.body.$[0].id}}",
+  "almacenId": "{{almacen.response.body.$.id}}",
   "clienteId": "{{cliente.response.body.$.id}}",
   "lineas": [ { "varianteId": "{{detalleAlimento.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
   "pagos": [

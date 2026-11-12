@@ -17,6 +17,13 @@ Content-Type: application/json
 
 { "negocio": "demo-b", "usuario": "admin", "password": "Admin12345" }
 
+### Abrir la caja (vender exige caja abierta). Si responde 409 es que ya estaba abierta: sigue.
+POST {{host}}/api/caja/abrir
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{ "montoInicial": 200000 }
+
 ### 1. Crear una bodega para la prueba
 # @name bodega
 POST {{host}}/api/inventario/almacenes

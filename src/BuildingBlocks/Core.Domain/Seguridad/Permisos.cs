@@ -22,6 +22,11 @@ public static class Permisos
     public const string AbonosRegistrar = "abonos.registrar";
     public const string AbonosAnular = "abonos.anular";
     public const string ConfiguracionAdministrar = "configuracion.administrar";
+    public const string CajaOperar = "caja.operar";                    // abrir, cerrar, ingresos y retiros
+    public const string CajaHistorial = "caja.historial";              // ver turnos anteriores
+    public const string GastosLeer = "gastos.leer";
+    public const string GastosRegistrar = "gastos.registrar";
+    public const string GastosAnular = "gastos.anular";
 
     public static IReadOnlyList<string> Todos { get; } =
     [
@@ -32,6 +37,8 @@ public static class Permisos
         ReportesVer,
         ClientesLeer, ClientesEscribir, ClientesCredito,
         AbonosRegistrar, AbonosAnular,
-        ConfiguracionAdministrar
+        ConfiguracionAdministrar,
+        CajaOperar, CajaHistorial,
+        GastosLeer, GastosRegistrar, GastosAnular
     ];
 }

@@ -11,4 +11,7 @@ public interface ITenantContext
 public interface ICurrentUser
 {
     Guid? UserId { get; }
+
+    /// <summary>Nombre para mostrar (cajero en la tirilla, quién abrió la caja). Null fuera de una petición.</summary>
+    string? Nombre => null;
 }

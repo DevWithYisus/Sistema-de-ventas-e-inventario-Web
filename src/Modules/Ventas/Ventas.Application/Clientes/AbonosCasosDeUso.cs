@@ -1,9 +1,11 @@
+using Core.Application.Abstractions;
 using Core.Application.Messaging;
 using Core.Application.Results;
 using Core.Application.Validation;
 using Core.Domain;
 using FluentValidation;
 using Ventas.Application.Abstracciones;
+using Ventas.Application.Caja;
 using Ventas.Application.Configuracion;
 using Ventas.Domain;
 
@@ -35,8 +37,10 @@ public sealed class RegistrarAbonoValidator : AbstractValidator<RegistrarAbonoCo
 internal sealed class RegistrarAbonoHandler(
     IClientesRepositorio clientes,
     IConfiguracionVentasRepositorio configuraciones,
+    ICajaRepositorio cajas,
     IVentasRepositorio ventas,
     IVentasUnitOfWork unitOfWork,
+    ICurrentUser usuario,
     TimeProvider reloj,
     IValidator<RegistrarAbonoCommand> validador) : ICommandHandler<RegistrarAbonoCommand, AbonoRegistradoDto>
 {
@@ -56,17 +60,28 @@ internal sealed class RegistrarAbonoHandler(
         var ahora = reloj.GetUtcNow();
         Abono abono;
 
+        SesionCaja? sesion;
+
         try
         {
             cliente.Abonar(command.Monto);
+
+            // En efectivo la caja es obligatoria (la plata entra al cajón); con otros medios se asocia si está abierta
+            sesion = command.Metodo == MetodoPago.Efectivo
+                ? await cajas.ExigirAsync(exclusivo: false, ct)
+                : await cajas.ObtenerAbiertaBloqueadaAsync(exclusivo: false, ct);
 
             var puntos = cliente.EsGeneral ? 0 : configuracion.CalcularPuntosGanados(command.Monto);
             var numero = await ventas.SiguienteNumeroAsync("ABO", ct);
 
             abono = Abono.Crear(numero, cliente.Id, ahora, command.Monto, command.Metodo,
-                command.Referencia, command.Observacion, puntos);
+                command.Referencia, command.Observacion, puntos, sesion?.Id, usuario.Nombre);
 
             cliente.SumarPuntos(puntos);
+
+            if (command.Metodo == MetodoPago.Efectivo)
+                cajas.Agregar(MovimientoCaja.Registrar(
+                    sesion!, TipoMovimientoCaja.Abono, abono.Monto, ahora, abono.Numero, abono.Id, cliente.Nombre));
         }
         catch (DomainException ex)
         {
@@ -100,6 +115,7 @@ public sealed class AnularAbonoValidator : AbstractValidator<AnularAbonoCommand>
 /// <summary>Deshace un abono registrado por error: la deuda vuelve y se quitan los puntos que dio.</summary>
 internal sealed class AnularAbonoHandler(
     IClientesRepositorio clientes,
+    ICajaRepositorio cajas,
     IVentasUnitOfWork unitOfWork,
     TimeProvider reloj,
     IValidator<AnularAbonoCommand> validador) : ICommandHandler<AnularAbonoCommand, Guid>
@@ -130,6 +146,15 @@ internal sealed class AnularAbonoHandler(
             abono.Anular(command.Motivo, ahora);
             cliente.RevertirAbono(abono.Monto);
             cliente.RevertirPuntos(ganados: abono.PuntosGanados, redimidos: 0);
+
+            // El efectivo sale de la caja abierta ahora (se le devuelve al cliente)
+            if (abono.Metodo == MetodoPago.Efectivo)
+            {
+                var sesion = await cajas.ExigirAsync(exclusivo: false, ct);
+                cajas.Agregar(MovimientoCaja.Registrar(
+                    sesion, TipoMovimientoCaja.AnulacionAbono, -abono.Monto, ahora,
+                    abono.Numero, abono.Id, $"Anulación: {command.Motivo.Trim()}"));
+            }
         }
         catch (DomainException ex)
         {

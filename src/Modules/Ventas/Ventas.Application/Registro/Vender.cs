@@ -1,4 +1,5 @@
 using Catalogo.Contracts;
+using Core.Application.Abstractions;
 using Core.Application.Messaging;
 using Core.Application.Results;
 using Core.Application.Validation;
@@ -7,6 +8,7 @@ using FluentValidation;
 using Inventario.Contracts;
 using Microsoft.Extensions.Logging;
 using Ventas.Application.Abstracciones;
+using Ventas.Application.Caja;
 using Ventas.Application.Configuracion;
 using Ventas.Domain;
 
@@ -73,16 +75,19 @@ public sealed class VenderValidator : AbstractValidator<VenderCommand>
 
 /// <summary>
 /// Registra una venta. Orden de las operaciones (Inventario y Ventas tienen bases lógicas separadas):
-///  1. Se valida todo en memoria (precios, totales, pagos, cupo de crédito, puntos) sin tocar nada.
+///  1. Se valida todo en memoria (caja abierta, precios, totales, pagos, cupo de crédito, puntos) sin tocar nada.
 ///  2. Inventario descuenta el stock (su propia transacción). Si no alcanza, no se guarda nada.
-///  3. En UNA transacción: la venta con su número, la deuda y los puntos del cliente y su estado de cuenta.
+///  3. En UNA transacción: la venta con su número, la deuda y los puntos del cliente, su estado de cuenta
+///     y la entrada de efectivo a la caja.
 ///  Si el paso 3 falla, el stock descontado se devuelve automáticamente (compensación).
 /// </summary>
 internal sealed class VenderHandler(
     IVentasRepositorio repositorio,
     IClientesRepositorio clientes,
     IConfiguracionVentasRepositorio configuraciones,
+    ICajaRepositorio cajas,
     IVentasUnitOfWork unitOfWork,
+    ICurrentUser usuario,
     ICatalogoApi catalogo,
     IInventarioApi inventario,
     TimeProvider reloj,
@@ -96,6 +101,10 @@ internal sealed class VenderHandler(
             return Error.Validation("venta.invalida", validacion.ComoMensaje());
 
         // ---- 1. Armar y validar la venta en memoria ----
+        var caja = await cajas.ObtenerAbiertaSinBloquearAsync(ct);
+        if (caja is null)
+            return Error.Validation("caja.cerrada", CajaAbierta.Mensaje);
+
         var ids = command.Lineas.Select(l => l.VarianteId).Distinct().ToList();
         var variantes = await catalogo.ObtenerVariantesAsync(ids, ct);
 
@@ -124,6 +133,8 @@ internal sealed class VenderHandler(
                 esGeneral ? command.ClienteDocumento : clienteVenta!.Documento,
                 command.Observacion,
                 clienteId);
+
+            venta.AsignarCaja(caja.Id, usuario.Nombre);
 
             for (var i = 0; i < command.Lineas.Count; i++)
             {
@@ -231,6 +242,15 @@ internal sealed class VenderHandler(
                     puntos: venta.PuntosGanados - venta.PuntosRedimidos,
                     ventaId: venta.Id));
             }
+
+            // La caja debe seguir abierta (bloqueo compartido: nadie la cierra mientras se guarda la venta)
+            var sesion = await cajas.ExigirAsync(exclusivo: false, ct);
+            if (sesion.Id != caja.Id)
+                throw new DomainException("caja.cambio", "La caja se cerró mientras se registraba la venta. Inténtalo de nuevo.");
+
+            if (venta.PagadoEnEfectivo > 0)
+                cajas.Agregar(MovimientoCaja.Registrar(
+                    sesion, TipoMovimientoCaja.Venta, venta.PagadoEnEfectivo, ahora, numero, venta.Id));
 
             await unitOfWork.SaveChangesAsync(ct);
             await transaccion.ConfirmarAsync(ct);

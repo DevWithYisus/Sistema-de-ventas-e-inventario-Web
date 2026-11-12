@@ -160,6 +160,7 @@ app.MapCatalogoVariantesEndpoints();
 app.MapVentasEndpoints();
 app.MapDashboardEndpoints();
 app.MapClientesEndpoints();
+app.MapCajaYGastosEndpoints();
 
 app.MapHealthChecks("/health").AllowAnonymous();
 

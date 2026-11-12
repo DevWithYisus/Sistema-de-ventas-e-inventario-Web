@@ -18,17 +18,25 @@ public sealed class Abono : AuditedEntity
     /// <summary>Puntos que ganó el cliente con este abono (las compras a crédito suman puntos al pagarse).</summary>
     public int PuntosGanados { get; private set; }
 
+    /// <summary>Caja abierta cuando se recibió (obligatoria si fue en efectivo).</summary>
+    public Guid? SesionCajaId { get; private set; }
+    public string? RegistradoPorNombre { get; private set; }
+
     public EstadoAbono Estado { get; private set; } = EstadoAbono.Activo;
     public DateTimeOffset? AnuladoEn { get; private set; }
     public string? MotivoAnulacion { get; private set; }
 
     public static Abono Crear(
         string numero, Guid clienteId, DateTimeOffset fecha, decimal monto, MetodoPago metodo,
-        string? referencia, string? observacion, int puntosGanados)
+        string? referencia, string? observacion, int puntosGanados,
+        Guid? sesionCajaId = null, string? registradoPor = null)
     {
         if (!MetodosDePago.EsDinero(metodo))
             throw new DomainException("abono.metodo_invalido",
                 "Los abonos se reciben en efectivo, tarjeta, transferencia u otro medio de pago (no a crédito ni con puntos).");
+
+        if (metodo == MetodoPago.Efectivo && sesionCajaId is null)
+            throw new DomainException("abono.requiere_caja", "Un abono en efectivo entra al cajón: debe haber una caja abierta.");
 
         if (puntosGanados < 0)
             throw new DomainException("abono.puntos_invalidos", "Los puntos no pueden ser negativos.");
@@ -42,7 +50,9 @@ public sealed class Abono : AuditedEntity
             Metodo = metodo,
             Referencia = Guard.Opcional(referencia, nameof(referencia), 100),
             Observacion = Guard.Opcional(observacion, nameof(observacion), 250),
-            PuntosGanados = puntosGanados
+            PuntosGanados = puntosGanados,
+            SesionCajaId = sesionCajaId,
+            RegistradoPorNombre = Guard.Opcional(registradoPor, nameof(registradoPor), 150)
         };
     }
 

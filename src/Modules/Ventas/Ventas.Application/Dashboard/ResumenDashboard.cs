@@ -29,7 +29,9 @@ public sealed record ResumenDashboardDto(
     IReadOnlyList<VentaResumenDto> UltimasVentas,
     ResumenDeInventario Inventario,
     decimal ObsequiosDelMes,
-    ResumenCarteraDto Cartera);
+    ResumenCarteraDto Cartera,
+    decimal GastosDelMes,
+    decimal UtilidadNetaDelMes);
 
 /// <param name="DiasGrafico">Días hacia atrás del gráfico de ventas diarias (7 a 90).</param>
 public sealed record ObtenerResumenDashboardQuery(int DiasGrafico = 30) : IQuery<ResumenDashboardDto>;
@@ -37,6 +39,7 @@ public sealed record ObtenerResumenDashboardQuery(int DiasGrafico = 30) : IQuery
 internal sealed class ObtenerResumenDashboardHandler(
     IVentasConsultas ventas,
     IClientesConsultas clientes,
+    IGastosConsultas gastos,
     IInventarioApi inventario,
     ZonaHorariaNegocio zona,
     TimeProvider reloj) : IQueryHandler<ObtenerResumenDashboardQuery, ResumenDashboardDto>
@@ -66,6 +69,7 @@ internal sealed class ObtenerResumenDashboardHandler(
 
         var obsequios = await ventas.CostoObsequiosAsync(p.MesActual.Desde, p.MesActual.Hasta, ct);
         var cartera = await clientes.ResumenCarteraAsync(ct);
+        var gastosMes = await gastos.TotalAsync(new DateOnly(p.Hoy.Year, p.Hoy.Month, 1), p.Hoy, ct);
 
         var resumenInventario = await inventario.ObtenerResumenAsync(
             p.Hoy.AddDays(DiasAvisoVencimiento), MaxAlertas, ct);
@@ -81,7 +85,9 @@ internal sealed class ObtenerResumenDashboardHandler(
             ultimas.Items,
             resumenInventario,
             obsequios,
-            cartera);
+            cartera,
+            gastosMes,
+            UtilidadNetaDelMes: mes.Utilidad - gastosMes);
     }
 
     private async Task<IndicadorDeVentas> IndicadorAsync(RangoDeFechas rango, CancellationToken ct)

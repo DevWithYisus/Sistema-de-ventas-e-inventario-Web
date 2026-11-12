@@ -52,6 +52,8 @@ public static class RolesSistema
              Core.Domain.Seguridad.Permisos.VentasVender,
              Core.Domain.Seguridad.Permisos.ClientesLeer,
              Core.Domain.Seguridad.Permisos.ClientesEscribir,
-             Core.Domain.Seguridad.Permisos.AbonosRegistrar], esSistema: true)
+             Core.Domain.Seguridad.Permisos.AbonosRegistrar,
+             Core.Domain.Seguridad.Permisos.CajaOperar,
+             Core.Domain.Seguridad.Permisos.GastosRegistrar], esSistema: true)
     ];
 }

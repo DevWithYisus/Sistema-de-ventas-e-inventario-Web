@@ -35,14 +35,18 @@ internal static class ConfiguracionVigente
 }
 
 // ---------- Inicializar (negocio nuevo o existente) ----------
-public sealed record InicializacionVentasDto(bool ConfiguracionCreada, bool ClienteGeneralCreado);
+public sealed record InicializacionVentasDto(bool ConfiguracionCreada, bool ClienteGeneralCreado, int CategoriasGastoCreadas = 0);
 
-/// <summary>Crea la configuración por defecto y el cliente general si no existen. Se puede ejecutar varias veces.</summary>
+/// <summary>
+/// Crea la configuración por defecto, el cliente general y las categorías de gasto iniciales si no existen.
+/// Se puede ejecutar varias veces.
+/// </summary>
 public sealed record InicializarVentasCommand(string? NombreComercial = null) : ICommand<InicializacionVentasDto>;
 
 internal sealed class InicializarVentasHandler(
     IConfiguracionVentasRepositorio configuraciones,
     IClientesRepositorio clientes,
+    IGastosRepositorio gastos,
     IVentasUnitOfWork unitOfWork) : ICommandHandler<InicializarVentasCommand, InicializacionVentasDto>
 {
     public async Task<Result<InicializacionVentasDto>> HandleAsync(InicializarVentasCommand command, CancellationToken ct)
@@ -57,8 +61,16 @@ internal sealed class InicializarVentasHandler(
             generalCreado = true;
         }
 
+        var categorias = 0;
+        if (!await gastos.HayCategoriasAsync(ct))
+        {
+            foreach (var nombre in CategoriaGasto.PorDefecto)
+                gastos.Agregar(CategoriaGasto.Crear(nombre));
+            categorias = CategoriaGasto.PorDefecto.Count;
+        }
+
         await unitOfWork.SaveChangesAsync(ct);
-        return new InicializacionVentasDto(configuracionCreada, generalCreado);
+        return new InicializacionVentasDto(configuracionCreada, generalCreado, categorias);
     }
 }
 

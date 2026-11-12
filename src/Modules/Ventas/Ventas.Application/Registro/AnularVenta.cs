@@ -6,6 +6,7 @@ using FluentValidation;
 using Inventario.Contracts;
 using Microsoft.Extensions.Logging;
 using Ventas.Application.Abstracciones;
+using Ventas.Application.Caja;
 using Ventas.Domain;
 
 namespace Ventas.Application.Registro;
@@ -29,6 +30,7 @@ public sealed class AnularVentaValidator : AbstractValidator<AnularVentaCommand>
 internal sealed class AnularVentaHandler(
     IVentasRepositorio repositorio,
     IClientesRepositorio clientes,
+    ICajaRepositorio cajas,
     IVentasUnitOfWork unitOfWork,
     IInventarioApi inventario,
     TimeProvider reloj,
@@ -76,6 +78,22 @@ internal sealed class AnularVentaHandler(
                 deuda: -credito,
                 puntos: venta.PuntosRedimidos - venta.PuntosGanados,
                 ventaId: venta.Id));
+        }
+
+        // El efectivo se le devuelve al cliente desde la caja abierta ahora (puede ser otro turno)
+        if (venta.PagadoEnEfectivo > 0)
+        {
+            try
+            {
+                var sesion = await cajas.ExigirAsync(exclusivo: false, ct);
+                cajas.Agregar(MovimientoCaja.Registrar(
+                    sesion, TipoMovimientoCaja.AnulacionVenta, -venta.PagadoEnEfectivo, ahora,
+                    venta.Numero, venta.Id, $"Anulación: {motivo}"));
+            }
+            catch (DomainException ex)
+            {
+                return Error.Conflict(ex.Code, ex.Message);
+            }
         }
 
         Guid? movimientoId = null;

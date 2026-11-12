@@ -23,6 +23,10 @@ public static class VentasModule
         services.AddScoped<IClientesRepositorio, ClientesRepositorio>();
         services.AddScoped<IClientesConsultas, ClientesConsultas>();
         services.AddScoped<IConfiguracionVentasRepositorio, ConfiguracionVentasRepositorio>();
+        services.AddScoped<ICajaRepositorio, CajaRepositorio>();
+        services.AddScoped<ICajaConsultas, CajaConsultas>();
+        services.AddScoped<IGastosRepositorio, GastosRepositorio>();
+        services.AddScoped<IGastosConsultas, GastosConsultas>();
 
         services.AddApplicationHandlers(typeof(IVentasRepositorio).Assembly);
 

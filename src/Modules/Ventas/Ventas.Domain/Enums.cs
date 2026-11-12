@@ -37,3 +37,28 @@ public enum EstadoAbono
     Activo,
     Anulado
 }
+
+public enum EstadoCaja
+{
+    Abierta,
+    Cerrada
+}
+
+/// <summary>Por qué entró (+) o salió (−) efectivo del cajón.</summary>
+public enum TipoMovimientoCaja
+{
+    Venta,
+    AnulacionVenta,
+    Abono,
+    AnulacionAbono,
+    Gasto,
+    AnulacionGasto,
+    Ingreso,    // ej. se agrega sencillo
+    Retiro      // ej. se saca plata para consignar
+}
+
+public enum EstadoGasto
+{
+    Activo,
+    Anulado
+}

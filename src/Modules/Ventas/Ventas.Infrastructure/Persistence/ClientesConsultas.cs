@@ -75,11 +75,12 @@ internal sealed class ClientesConsultas(VentasDbContext db) : IClientesConsultas
     public async Task<AbonoDto?> ObtenerAbonoAsync(Guid abonoId, CancellationToken ct)
     {
         var fila = await (
-         from ab in db.Abonos.AsNoTracking()
-         join c in db.Clientes.AsNoTracking() on ab.ClienteId equals c.Id
-         where ab.Id == abonoId
-         select new { Abono = ab, c.Nombre, c.Documento })
-        .FirstOrDefaultAsync(ct);  
+                from ab in db.Abonos.AsNoTracking()
+                join c in db.Clientes.AsNoTracking() on ab.ClienteId equals c.Id
+                where ab.Id == abonoId
+                select new { Abono = ab, c.Nombre, c.Documento })
+            .FirstOrDefaultAsync(ct);
+
         if (fila is null) return null;
 
         // Saldos con que quedó el cliente justo después del abono (para reimprimir el comprobante)

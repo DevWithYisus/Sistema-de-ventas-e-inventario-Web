@@ -1,3 +1,4 @@
+using Core.Application.Common;
 using Inventario.Contracts;
 using Ventas.Domain;
 
@@ -83,3 +84,53 @@ public sealed record ProductoVentaDto(
     Guid VarianteId, string Sku, string Nombre, string? CodigoBarras, decimal Precio,
     bool ManejaInventario, bool ManejaLotes, bool EsObsequiable,
     decimal CantidadPorEscaneo, bool CoincidenciaExacta, decimal? Disponible);
+
+// ---------- Caja ----------
+
+public sealed record TotalPorMetodoDto(MetodoPago Metodo, int Cantidad, decimal Monto);
+
+/// <summary>
+/// Cuadre de una sesión de caja. Efectivo esperado = base + ventas + abonos − gastos + ingresos − retiros ± anulaciones.
+/// Los totales por método son informativos: tarjeta y transferencia no pasan por el cajón.
+/// </summary>
+/// <param name="AjustesPorAnulaciones">Neto de anulaciones (devolver efectivo de una venta resta, anular un gasto suma).</param>
+public sealed record ResumenCajaDto(
+    Guid Id, string Numero, EstadoCaja Estado,
+    DateTimeOffset AbiertaEn, string? AbiertaPor, string? ObservacionApertura,
+    decimal MontoInicial,
+    decimal VentasEfectivo, decimal AbonosEfectivo, decimal GastosEfectivo,
+    decimal Ingresos, decimal Retiros, decimal AjustesPorAnulaciones,
+    decimal EfectivoEsperado,
+    int CantidadVentas,
+    IReadOnlyList<TotalPorMetodoDto> VentasPorMetodo,
+    IReadOnlyList<TotalPorMetodoDto> AbonosPorMetodo,
+    DateTimeOffset? CerradaEn, string? CerradaPor,
+    decimal? EfectivoContado, decimal? Diferencia, string? ObservacionCierre);
+
+/// <param name="Resumen">Null si no hay una caja abierta.</param>
+public sealed record EstadoCajaDto(bool Abierta, ResumenCajaDto? Resumen);
+
+public sealed record SesionCajaResumenDto(
+    Guid Id, string Numero, EstadoCaja Estado, DateTimeOffset AbiertaEn, string? AbiertaPor,
+    DateTimeOffset? CerradaEn, string? CerradaPor, decimal MontoInicial,
+    decimal? EfectivoEsperado, decimal? EfectivoContado, decimal? Diferencia);
+
+public sealed record MovimientoCajaDto(
+    Guid Id, DateTimeOffset Fecha, TipoMovimientoCaja Tipo, decimal Monto,
+    string? Documento, Guid? DocumentoId, string? Descripcion);
+
+public sealed record DetalleSesionCajaDto(ResumenCajaDto Resumen, IReadOnlyList<MovimientoCajaDto> Movimientos);
+
+// ---------- Gastos ----------
+
+public sealed record CategoriaGastoDto(Guid Id, string Nombre, bool Activo);
+
+public sealed record GastoDto(
+    Guid Id, string Numero, DateOnly Fecha, Guid CategoriaId, string Categoria, string Descripcion,
+    decimal Monto, MetodoPago Metodo, string? Referencia, string? Proveedor, string? RegistradoPor,
+    EstadoGasto Estado, string? MotivoAnulacion, DateTimeOffset CreadoEn);
+
+/// <param name="Total">Suma de los gastos activos que cumplen el filtro (todas las páginas).</param>
+public sealed record ListadoGastosDto(decimal Total, PaginaDto<GastoDto> Gastos);
+
+public sealed record GastoRegistradoDto(Guid Id, string Numero, decimal Monto);

@@ -1,0 +1,222 @@
+# Caja y gastos. Ejecuta las peticiones EN ORDEN.
+# Requisitos: migración aplicada, sql/02 y sql/05 ejecutados, y sesión iniciada DESPUÉS del sql/05.
+@host = http://localhost:5248
+
+### 0. Iniciar sesión (administrador)
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-a", "usuario": "admin", "password": "Admin12345" }
+
+### 1. Inicializar: crea las categorías de gasto iniciales (arriendo, servicios, nómina...)
+POST {{host}}/api/ventas/inicializar
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{}
+
+### 2. Estado de la caja
+# @name actual
+GET {{host}}/api/caja/actual
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 3. SOLO si el paso 2 dijo "abierta": true -> cerrarla para empezar de cero (contando justo lo esperado)
+POST {{host}}/api/caja/cerrar
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "efectivoContado": {{actual.response.body.$.resumen.efectivoEsperado}} }
+
+### 4. Abrir la caja con $100.000 de base
+POST {{host}}/api/caja/abrir
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "montoInicial": 100000, "observacion": "Turno de la mañana" }
+
+### 5. Abrir otra vez -> 409 (ya hay una caja abierta)
+POST {{host}}/api/caja/abrir
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "montoInicial": 50000 }
+
+### ---------- Preparar un producto ----------
+
+###
+# @name almacen
+POST {{host}}/api/inventario/almacenes
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "codigo": "CJ-{{$randomInt 1000 9999}}", "nombre": "Almacén prueba caja" }
+
+###
+# @name unidad
+POST {{host}}/api/catalogo/unidades-medida
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "codigo": "C{{$randomInt 1000 9999}}", "nombre": "Unidad", "permiteDecimales": false }
+
+###
+# @name producto
+POST {{host}}/api/catalogo/productos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "nombre": "Arena para gato 10 kg", "sku": "ARENA-{{$randomInt 10000 99999}}", "unidadBaseId": "{{unidad.response.body.$.id}}", "precio": 95000, "costo": 60000 }
+
+###
+# @name detalle
+GET {{host}}/api/catalogo/productos/{{producto.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+###
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "tipoMovimiento": "COMPRA",
+  "almacenDestinoId": "{{almacen.response.body.$.id}}",
+  "lineas": [ { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 10, "costoUnitario": 60000 } ]
+}
+
+### ---------- Movimientos del turno ----------
+
+### 6. Venta en efectivo: paga con $100.000 -> cambio 5.000; entran 95.000 al cajón
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacen.response.body.$.id}}",
+  "lineas": [ { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
+  "pagos": [ { "metodo": "Efectivo", "monto": 95000, "recibido": 100000 } ]
+}
+
+### 7. Venta con tarjeta -> NO cambia el efectivo del cajón (sale en "ventas por método")
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacen.response.body.$.id}}",
+  "lineas": [ { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
+  "pagos": [ { "metodo": "Tarjeta", "monto": 95000, "referencia": "Voucher 7788" } ]
+}
+
+### 8. Categoría para el gasto
+# @name categoria
+POST {{host}}/api/gastos/categorias
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "nombre": "Domicilios {{$randomInt 100 999}}" }
+
+### 9. Gasto en efectivo de $20.000 -> sale del cajón
+# @name gasto
+POST {{host}}/api/gastos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "categoriaId": "{{categoria.response.body.$.id}}",
+  "descripcion": "Domicilio de pedido a cliente",
+  "monto": 20000,
+  "metodo": "Efectivo",
+  "proveedor": "Mensajero Juan"
+}
+
+### 10. Gasto por transferencia de $300.000 (arriendo) -> NO toca el cajón
+POST {{host}}/api/gastos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "categoriaId": "{{categoria.response.body.$.id}}",
+  "descripcion": "Prueba de gasto por transferencia",
+  "monto": 300000,
+  "metodo": "Transferencia",
+  "referencia": "Bancolombia 556"
+}
+
+### 11. Retiro de $50.000 para consignar
+POST {{host}}/api/caja/movimientos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "tipo": "Retiro", "monto": 50000, "descripcion": "Consignación en el banco" }
+
+### 12. Ingreso de $10.000 en sencillo
+POST {{host}}/api/caja/movimientos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "tipo": "Ingreso", "monto": 10000, "descripcion": "Sencillo para cambio" }
+
+### 13. Retirar más de lo que hay -> 400
+POST {{host}}/api/caja/movimientos
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "tipo": "Retiro", "monto": 9999999, "descripcion": "Prueba" }
+
+### 14. Cuadre en vivo: esperado = 100.000 + 95.000 − 20.000 − 50.000 + 10.000 = 135.000
+GET {{host}}/api/caja/actual
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### ---------- Cierre ----------
+
+### 15. Cerrar contando $130.000 sin explicar -> 400 (faltan 5.000: pide una observación)
+POST {{host}}/api/caja/cerrar
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "efectivoContado": 130000 }
+
+### 16. Cerrar con observación -> 200, diferencia -5.000
+# @name cierre
+POST {{host}}/api/caja/cerrar
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "efectivoContado": 130000, "observacion": "Faltante de 5.000, se revisará con el cajero" }
+
+### 17. Vender con la caja cerrada -> 400 (caja.cerrada)
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{almacen.response.body.$.id}}",
+  "lineas": [ { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 1 } ],
+  "pagos": [ { "metodo": "Efectivo", "monto": 95000 } ]
+}
+
+### 18. Anular el gasto en efectivo con la caja cerrada -> 409 (la plata tiene que volver a una caja abierta)
+POST {{host}}/api/gastos/{{gasto.response.body.$.id}}/anular
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+{ "motivo": "Registrado por error" }
+
+### ---------- Historial e informes ----------
+
+### 19. Turnos de caja anteriores
+GET {{host}}/api/caja/sesiones
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 20. Detalle del turno cerrado: cuadre y cada movimiento de efectivo
+GET {{host}}/api/caja/sesiones/{{cierre.response.body.$.id}}
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 21. Gastos del mes con su total
+GET {{host}}/api/gastos
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 22. Dashboard: gastos del mes y utilidad neta (utilidad de ventas − gastos)
+GET {{host}}/api/dashboard
+Authorization: Bearer {{login.response.body.$.accessToken}}

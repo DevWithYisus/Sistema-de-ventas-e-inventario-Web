@@ -43,6 +43,12 @@ public sealed class Venta : AuditedEntity
     /// <summary>Puntos que el cliente usó como forma de pago.</summary>
     public int PuntosRedimidos { get; private set; }
 
+    /// <summary>Turno de caja en que se hizo la venta.</summary>
+    public Guid? SesionCajaId { get; private set; }
+
+    /// <summary>Quién la registró (sale en la tirilla como "Atendido por").</summary>
+    public string? VendedorNombre { get; private set; }
+
     public DateTimeOffset? AnuladaEn { get; private set; }
     public string? MotivoAnulacion { get; private set; }
     public Guid? MovimientoAnulacionId { get; private set; }
@@ -151,6 +157,15 @@ public sealed class Venta : AuditedEntity
     public decimal PagadoACredito => _pagos.Where(p => p.Metodo == MetodoPago.Credito).Sum(p => p.Monto);
 
     public decimal PagadoConPuntos => _pagos.Where(p => p.Metodo == MetodoPago.Puntos).Sum(p => p.Monto);
+
+    public decimal PagadoEnEfectivo => _pagos.Where(p => p.Metodo == MetodoPago.Efectivo).Sum(p => p.Monto);
+
+    public void AsignarCaja(Guid sesionCajaId, string? vendedorNombre)
+    {
+        ExigirEstado(EstadoVenta.Borrador, "venta.no_editable", "La venta ya fue completada y no se puede modificar.");
+        SesionCajaId = sesionCajaId;
+        VendedorNombre = Guard.Opcional(vendedorNombre, nameof(vendedorNombre), 150);
+    }
 
     public void RegistrarPuntos(int ganados, int redimidos)
     {

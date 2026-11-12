@@ -40,7 +40,7 @@ Ejecútalos **como `ventas_owner`** en este orden:
 
 1. `sql/deploy/1_identidad.sql` … `4_ventas.sql`
 2. `sql/02_seguridad_tenant.sql` (permisos de `ventas_app` + Row Level Security)
-3. `sql/03_permiso_reportes.sql` y `sql/04_permisos_clientes.sql` (solo si ya había negocios creados antes)
+3. `sql/03_permiso_reportes.sql`, `sql/04_permisos_clientes.sql` y `sql/05_permisos_caja_gastos.sql` (solo si ya había negocios creados antes)
 4. Con un administrador: `POST /api/ventas/inicializar` (solo negocios creados antes del módulo de clientes)
 
 ## 3. Imagen Docker
