@@ -26,4 +26,17 @@ public interface IVentasConsultas
     Task<PaginaDto<VentaResumenDto>> ListarVentasAsync(
         DateTimeOffset? desde, DateTimeOffset? hasta, EstadoVenta? estado,
         int pagina, int tamanoPagina, CancellationToken ct);
+
+    // ---- Métricas (solo ventas completadas; rangos [desde, hasta) en UTC) ----
+
+    Task<TotalesDeVentas> TotalesAsync(DateTimeOffset desde, DateTimeOffset hasta, CancellationToken ct);
+
+    /// <summary>Fecha y total de cada venta del rango, para agruparlas por día local.</summary>
+    Task<IReadOnlyList<VentaFechaTotal>> FechasYTotalesAsync(DateTimeOffset desde, DateTimeOffset hasta, CancellationToken ct);
+
+    Task<IReadOnlyList<ProductoMasVendidoDto>> ProductosMasVendidosAsync(
+        DateTimeOffset desde, DateTimeOffset hasta, int cantidad, CancellationToken ct);
+
+    Task<IReadOnlyList<VentasPorMetodoDto>> VentasPorMetodoDePagoAsync(
+        DateTimeOffset desde, DateTimeOffset hasta, CancellationToken ct);
 }

@@ -22,3 +22,15 @@ public sealed record VentaDto(
 public sealed record VentaResumenDto(
     Guid Id, string Numero, EstadoVenta Estado, DateTimeOffset Fecha,
     string? ClienteNombre, decimal Total, int CantidadLineas);
+
+// ---------- Métricas ----------
+
+/// <param name="VentaNeta">Subtotal menos descuentos, sin impuestos (base para la utilidad).</param>
+/// <param name="Costo">Costo de lo vendido a costo promedio.</param>
+public sealed record TotalesDeVentas(int Cantidad, decimal Total, decimal VentaNeta, decimal Costo);
+
+public sealed record VentaFechaTotal(DateTimeOffset Fecha, decimal Total);
+
+public sealed record ProductoMasVendidoDto(Guid VarianteId, string Sku, string Descripcion, decimal Cantidad, decimal Total);
+
+public sealed record VentasPorMetodoDto(MetodoPago Metodo, int Pagos, decimal Monto);

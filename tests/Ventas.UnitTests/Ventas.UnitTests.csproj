@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Modules\Ventas\Ventas.Domain\Ventas.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Modules\Ventas\Ventas.Application\Ventas.Application.csproj" />
   </ItemGroup>
 
 </Project>

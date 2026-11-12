@@ -29,6 +29,23 @@ internal sealed class InventarioApi(
         IReadOnlyCollection<Guid> varianteIds, CancellationToken cancellationToken)
         => alertas.CalcularAsync(varianteIds, cancellationToken);
 
+    public async Task<ResumenDeInventario> ObtenerResumenAsync(
+        DateOnly venceAntesDe, int maxAlertas, CancellationToken cancellationToken)
+    {
+        // Secuencial a propósito: ambas consultas comparten el mismo DbContext (no admite concurrencia)
+        var valorizacion = await consultas.ValorizarAsync(venceAntesDe, cancellationToken);
+        var todas = await alertas.CalcularAsync(null, cancellationToken);
+
+        return new ResumenDeInventario(
+            valorizacion.ValorTotal,
+            valorizacion.Unidades,
+            valorizacion.ProductosConStock,
+            Agotados: todas.Count(a => a.Nivel == NivelAlerta.Agotado),
+            Bajos: todas.Count(a => a.Nivel == NivelAlerta.Bajo),
+            valorizacion.LotesPorVencer,
+            AlertasPrincipales: todas.Take(Math.Max(0, maxAlertas)).ToList());
+    }
+
     private async Task<Result<MovimientoDeInventario>> RegistrarAsync(
         string tipo, Guid? origenId, Guid? destinoId, Guid ventaId,
         IReadOnlyList<LineaDeSalida> lineas, string observacion, CancellationToken ct)

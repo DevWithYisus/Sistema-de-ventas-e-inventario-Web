@@ -19,6 +19,16 @@ public sealed record AlertaDeStock(
     Guid VarianteId, string Sku, string Producto,
     decimal StockActual, decimal StockMinimo, decimal Faltante, NivelAlerta Nivel);
 
+/// <summary>Foto del inventario para el dashboard.</summary>
+/// <param name="ValorTotal">Existencias valorizadas a costo promedio.</param>
+/// <param name="ProductosConStock">Variantes distintas con existencia mayor que cero.</param>
+/// <param name="LotesPorVencer">Lotes con existencia que vencen dentro de los días indicados (incluye los ya vencidos).</param>
+/// <param name="AlertasPrincipales">Las alertas más urgentes (agotados primero).</param>
+public sealed record ResumenDeInventario(
+    decimal ValorTotal, decimal Unidades, int ProductosConStock,
+    int Agotados, int Bajos, int LotesPorVencer,
+    IReadOnlyList<AlertaDeStock> AlertasPrincipales);
+
 /// <summary>
 /// Puerta de entrada pública del módulo Inventario. Otros módulos (Ventas, Compras) lo usan
 /// sin conocer sus entidades ni su base de datos.
@@ -36,4 +46,10 @@ public interface IInventarioApi
     /// <summary>Alertas de bajo stock de las variantes indicadas.</summary>
     Task<IReadOnlyList<AlertaDeStock>> ObtenerAlertasDeStockAsync(
         IReadOnlyCollection<Guid> varianteIds, CancellationToken cancellationToken);
+
+    /// <summary>Valor del inventario, alertas y lotes próximos a vencer.</summary>
+    /// <param name="venceAntesDe">Fecha límite (inclusive) para contar lotes por vencer.</param>
+    /// <param name="maxAlertas">Cuántas alertas devolver en el detalle.</param>
+    Task<ResumenDeInventario> ObtenerResumenAsync(
+        DateOnly venceAntesDe, int maxAlertas, CancellationToken cancellationToken);
 }

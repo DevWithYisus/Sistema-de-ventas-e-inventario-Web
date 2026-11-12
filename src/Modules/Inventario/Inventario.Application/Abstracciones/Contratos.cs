@@ -43,4 +43,7 @@ public interface IInventarioConsultas
     Task<PaginaDto<KardexDto>> ConsultarKardexAsync(
         Guid varianteId, Guid? almacenId, DateTimeOffset? desde, DateTimeOffset? hasta,
         int pagina, int tamanoPagina, CancellationToken ct);
+
+    /// <summary>Totales de todas las existencias del negocio (todos los almacenes).</summary>
+    Task<ValorizacionDto> ValorizarAsync(DateOnly venceAntesDe, CancellationToken ct);
 }

@@ -15,12 +15,14 @@ public static class Permisos
     public const string VentasVender = "ventas.vender";
     public const string VentasAnular = "ventas.anular";
     public const string UsuariosAdministrar = "usuarios.administrar";
+    public const string ReportesVer = "reportes.ver";
 
     public static IReadOnlyList<string> Todos { get; } =
     [
         CatalogoLeer, CatalogoEscribir,
         InventarioLeer, InventarioMover, InventarioAdministrar,
         VentasLeer, VentasVender, VentasAnular,
-        UsuariosAdministrar
+        UsuariosAdministrar,
+        ReportesVer
     ];
 }

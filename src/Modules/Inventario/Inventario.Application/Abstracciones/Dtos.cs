@@ -26,3 +26,5 @@ public sealed record KardexDto(
     decimal Cantidad, decimal CostoUnitario, decimal SaldoCantidad, decimal CostoPromedio, decimal SaldoValor);
 
 public sealed record InicializacionDto(int TiposMovimientoCreados, bool AlmacenPrincipalCreado);
+
+public sealed record ValorizacionDto(decimal ValorTotal, decimal Unidades, int ProductosConStock, int LotesPorVencer);

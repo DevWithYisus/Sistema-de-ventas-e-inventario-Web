@@ -76,8 +76,9 @@ internal sealed class InventarioConsultas(InventarioDbContext db) : IInventarioC
             select new { k, m.Numero, Lote = l == null ? null : l.CodigoLote };
 
         if (almacenId is { } al) consulta = consulta.Where(x => x.k.AlmacenId == al);
-        if (desde is { } d) consulta = consulta.Where(x => x.k.Fecha >= d);
-        if (hasta is { } h) consulta = consulta.Where(x => x.k.Fecha <= h);
+        // Npgsql solo acepta DateTimeOffset en UTC para columnas timestamptz
+        if (desde is { } d) { var du = d.ToUniversalTime(); consulta = consulta.Where(x => x.k.Fecha >= du); }
+        if (hasta is { } h) { var hu = h.ToUniversalTime(); consulta = consulta.Where(x => x.k.Fecha <= hu); }
 
         var total = await consulta.CountAsync(ct);
 
@@ -92,5 +93,40 @@ internal sealed class InventarioConsultas(InventarioDbContext db) : IInventarioC
             .ToListAsync(ct);
 
         return new PaginaDto<KardexDto>(items, pagina, tamanoPagina, total);
+    }
+
+    public async Task<ValorizacionDto> ValorizarAsync(DateOnly venceAntesDe, CancellationToken ct)
+    {
+        var existencias = db.Existencias.AsNoTracking();
+
+        // Una sola fila con los totales (GroupBy por constante = agregado sobre toda la tabla)
+        var totales = await existencias
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Valor = g.Sum(e => e.Cantidad * e.CostoPromedio),
+                Unidades = g.Sum(e => e.Cantidad)
+            })
+            .FirstOrDefaultAsync(ct);
+
+        var productosConStock = await existencias
+            .Where(e => e.Cantidad > 0)
+            .Select(e => e.VarianteId)
+            .Distinct()
+            .CountAsync(ct);
+
+        var lotesPorVencer = await (
+                from e in existencias
+                join l in db.Lotes on e.LoteId equals (Guid?)l.Id
+                where e.Cantidad > 0 && l.FechaVencimiento != null && l.FechaVencimiento <= venceAntesDe
+                select l.Id)
+            .Distinct()
+            .CountAsync(ct);
+
+        return new ValorizacionDto(
+            Math.Round(totales?.Valor ?? 0m, 2),
+            totales?.Unidades ?? 0m,
+            productosConStock,
+            lotesPorVencer);
     }
 }

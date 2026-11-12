@@ -12,6 +12,7 @@ using Inventario.Infrastructure;
 using Ventas.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
@@ -39,6 +40,9 @@ var jwt = builder.Configuration.GetSection("Jwt").Get<JwtOptions>()
 
 if (string.IsNullOrWhiteSpace(jwt.Issuer) || string.IsNullOrWhiteSpace(jwt.Audience) || jwt.Key.Length < 32)
     throw new InvalidOperationException("Configura Jwt:Issuer, Jwt:Audience y Jwt:Key (mínimo 32 caracteres).");
+
+// "Hoy" y "este mes" en reportes se calculan en la hora local del negocio
+builder.Services.AddSingleton(ZonaHorariaNegocio.Desde(builder.Configuration["Negocio:ZonaHoraria"]));
 
 // Mensajes de validación en español
 FluentValidation.ValidatorOptions.Global.LanguageManager.Culture = new CultureInfo("es");
@@ -94,6 +98,32 @@ builder.Services.AddRateLimiter(opciones =>
         _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
 });
 
+// ---------- CORS: qué sitios web (el frontend) pueden llamar a la API desde el navegador ----------
+// Desarrollo: appsettings.Development.json. Producción: variable Cors__OrigenesPermitidos__0=https://tu-dominio
+var origenesPermitidos = builder.Configuration.GetSection("Cors:OrigenesPermitidos").Get<string[]>() ?? [];
+builder.Services.AddCors(opciones => opciones.AddDefaultPolicy(politica => politica
+    .WithOrigins(origenesPermitidos)
+    .AllowAnyHeader()
+    .AllowAnyMethod()));
+
+// ---------- Detrás de un proxy (Render, Railway, Azure, Nginx...) ----------
+// Sin esto, la API vería la IP del proxy en vez de la del cliente y el límite de login
+// por IP bloquearía a todos a la vez. Actívalo SOLO si hay un proxy delante.
+var detrasDeProxy = builder.Configuration.GetValue<bool>("ProxyInverso:Habilitado");
+if (detrasDeProxy)
+{
+    builder.Services.Configure<ForwardedHeadersOptions>(opciones =>
+    {
+        opciones.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+        // El proxy del hosting no tiene una IP fija conocida
+        opciones.KnownIPNetworks.Clear();
+        opciones.KnownProxies.Clear();
+    });
+}
+
+builder.Services.AddHealthChecks()
+    .AddCheck("base-de-datos", new BaseDeDatosHealthCheck(connectionString));
+
 // ---------- API ----------
 builder.Services.ConfigureHttpJsonOptions(opciones =>
     opciones.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
@@ -103,8 +133,15 @@ builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 var app = builder.Build();
 
+if (detrasDeProxy)
+    app.UseForwardedHeaders();   // debe ir primero
+
+if (!app.Environment.IsDevelopment())
+    app.UseHsts();
+
 app.UseSerilogRequestLogging();
 app.UseExceptionHandler();
+app.UseCors();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -121,6 +158,9 @@ app.MapInventarioEndpoints();
 app.MapAlertasStockEndpoints();
 app.MapCatalogoVariantesEndpoints();
 app.MapVentasEndpoints();
+app.MapDashboardEndpoints();
+
+app.MapHealthChecks("/health").AllowAnonymous();
 
 app.Run();
 

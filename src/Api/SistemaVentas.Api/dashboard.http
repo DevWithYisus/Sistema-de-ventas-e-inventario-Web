@@ -1,0 +1,22 @@
+# Dashboard de métricas. Requiere el permiso reportes.ver (rol Administrador).
+# Si tu negocio se creó antes de este cambio, ejecuta primero sql/03_permiso_reportes.sql
+# y vuelve a iniciar sesión para que el token traiga el permiso nuevo.
+@host = http://localhost:5248
+
+### 1. Iniciar sesión como administrador
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-a", "email": "admin@demo-a.com", "password": "Admin12345" }
+
+### 2. Dashboard con el gráfico de los últimos 30 días (por defecto)
+GET {{host}}/api/dashboard
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 3. Dashboard con gráfico de 7 días (acepta de 7 a 90)
+GET {{host}}/api/dashboard?dias=7
+Authorization: Bearer {{login.response.body.$.accessToken}}
+
+### 4. Health check (sin token): 200 si la API está arriba y llega a la base
+GET {{host}}/health
