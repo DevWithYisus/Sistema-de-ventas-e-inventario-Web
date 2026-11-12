@@ -21,13 +21,17 @@ public sealed record LineaMovimiento(
     DateOnly? FechaVencimiento = null);
 
 /// <param name="TipoMovimiento">Código del tipo: COMPRA, VENTA, TRASLADO, AJUSTE_ENTRADA...</param>
+/// <param name="OrigenTipo">Documento que originó el movimiento (ej. "VENTA"), para trazabilidad.</param>
+/// <param name="OrigenId">Id de ese documento.</param>
 public sealed record RegistrarMovimientoCommand(
     string TipoMovimiento,
     Guid? AlmacenOrigenId,
     Guid? AlmacenDestinoId,
     IReadOnlyList<LineaMovimiento> Lineas,
     DateTimeOffset? Fecha = null,
-    string? Observacion = null) : ICommand<MovimientoRegistradoDto>;
+    string? Observacion = null,
+    string? OrigenTipo = null,
+    Guid? OrigenId = null) : ICommand<MovimientoRegistradoDto>;
 
 public sealed class RegistrarMovimientoValidator : AbstractValidator<RegistrarMovimientoCommand>
 {
@@ -35,6 +39,7 @@ public sealed class RegistrarMovimientoValidator : AbstractValidator<RegistrarMo
     {
         RuleFor(x => x.TipoMovimiento).NotEmpty().MaximumLength(30);
         RuleFor(x => x.Observacion).MaximumLength(500);
+        RuleFor(x => x.OrigenTipo).MaximumLength(30);
 
         RuleFor(x => x.Lineas)
             .NotEmpty().WithMessage("El movimiento necesita al menos una línea.")
@@ -145,7 +150,8 @@ internal sealed class RegistrarMovimientoHandler(
 
         var movimiento = Movimiento.Crear(
             numero, tipo, command.Fecha ?? ahora,
-            command.AlmacenOrigenId, command.AlmacenDestinoId, command.Observacion);
+            command.AlmacenOrigenId, command.AlmacenDestinoId, command.Observacion,
+            command.OrigenTipo, command.OrigenId);
 
         var lotes = new Dictionary<(Guid VarianteId, string Codigo), Lote>();
 

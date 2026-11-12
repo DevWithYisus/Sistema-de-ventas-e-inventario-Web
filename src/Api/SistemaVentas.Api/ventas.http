@@ -1,0 +1,187 @@
+# Ventas y alertas de bajo stock. Ejecuta las peticiones EN ORDEN (cada una usa datos de las anteriores).
+# Requisito: haber ejecutado UNA VEZ identidad.http (crea los negocios demo-a y demo-b).
+# Ajusta el puerto con el que aparece en la consola al ejecutar la API.
+@host = http://localhost:5248
+
+### Iniciar sesión en el negocio A (administrador)
+# @name loginA
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-a", "email": "admin@demo-a.com", "password": "Admin12345" }
+
+### Iniciar sesión en el negocio B (para la prueba de aislamiento)
+# @name loginB
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-b", "email": "admin@demo-b.com", "password": "Admin12345" }
+
+### 1. Crear una bodega para la prueba
+# @name bodega
+POST {{host}}/api/inventario/almacenes
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{ "codigo": "BOD-{{$randomInt 1000 9999}}", "nombre": "Bodega de prueba" }
+
+### 2. Crear una unidad de medida
+# @name unidad
+POST {{host}}/api/catalogo/unidades-medida
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{ "codigo": "U{{$randomInt 1000 9999}}", "nombre": "Unidad de prueba", "permiteDecimales": false }
+
+### 3. Crear el producto: alimento para perro, precio $95.000, costo $70.000
+# @name producto
+POST {{host}}/api/catalogo/productos
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{
+  "nombre": "Alimento para perro 10 kg",
+  "sku": "ALI-{{$guid}}",
+  "unidadBaseId": "{{unidad.response.body.$.id}}",
+  "precio": 95000,
+  "costo": 70000
+}
+
+### 4. Obtener el producto (necesitamos el id de su variante)
+# @name detalle
+GET {{host}}/api/catalogo/productos/{{producto.response.body.$.id}}
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 5. Definir el stock mínimo en 5 unidades -> 200
+PUT {{host}}/api/catalogo/variantes/{{detalle.response.body.$.variantes[0].id}}/limites-stock
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{ "minimo": 5 }
+
+### 6. COMPRA de 10 unidades a $70.000 en la bodega
+POST {{host}}/api/inventario/movimientos
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{
+  "tipoMovimiento": "COMPRA",
+  "almacenDestinoId": "{{bodega.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 10, "costoUnitario": 70000 }
+  ]
+}
+
+### 7. Alertas de stock -> este producto NO aparece (hay 10 y el mínimo es 5)
+GET {{host}}/api/inventario/alertas-stock
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 8. VENTA 1: 3 unidades al precio del catálogo, pago en efectivo -> 201, total 285000, alertas vacías
+# @name venta1
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{bodega.response.body.$.id}}",
+  "clienteNombre": "Laura Gómez",
+  "lineas": [
+    { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 3 }
+  ],
+  "pagos": [
+    { "metodo": "Efectivo", "monto": 285000 }
+  ]
+}
+
+### 9. VENTA 2: 3 unidades con 10% de descuento, pago mixto -> total 256500
+# Quedan 4 unidades (mínimo 5): la respuesta trae la ALERTA de bajo stock.
+# @name venta2
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{bodega.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 3, "descuentoPorcentaje": 10 }
+  ],
+  "pagos": [
+    { "metodo": "Tarjeta", "monto": 100000, "referencia": "AUT-4821" },
+    { "metodo": "Efectivo", "monto": 156500 }
+  ]
+}
+
+### 10. Alertas de stock -> aparece el alimento: stockActual 4, stockMinimo 5, faltante 1, nivel Bajo
+GET {{host}}/api/inventario/alertas-stock
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 11. Stock por almacén -> 4 unidades, costo promedio 70000
+GET {{host}}/api/inventario/stock?varianteId={{detalle.response.body.$.variantes[0].id}}
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 12. Vender más de lo que hay -> debe responder 409 (inventario.stock_insuficiente) y NO guardar nada
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{bodega.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 10 }
+  ],
+  "pagos": [
+    { "metodo": "Efectivo", "monto": 950000 }
+  ]
+}
+
+### 13. Pagos que no cuadran con el total -> debe responder 400 (venta.pagos_no_cuadran); el stock no se toca
+POST {{host}}/api/ventas
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{
+  "almacenId": "{{bodega.response.body.$.id}}",
+  "lineas": [
+    { "varianteId": "{{detalle.response.body.$.variantes[0].id}}", "cantidad": 1 }
+  ],
+  "pagos": [
+    { "metodo": "Efectivo", "monto": 90000 }
+  ]
+}
+
+### 14. Consultar la venta 2 con sus líneas y pagos
+GET {{host}}/api/ventas/{{venta2.response.body.$.id}}
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 15. Listar ventas -> las 2 completadas, la más reciente primero
+GET {{host}}/api/ventas?pagina=1&tamanoPagina=10
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 16. ANULAR la venta 2 -> 200; el inventario vuelve a 7 unidades
+POST {{host}}/api/ventas/{{venta2.response.body.$.id}}/anular
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{ "motivo": "El cliente devolvió la compra" }
+
+### 17. Anular otra vez la misma venta -> debe responder 409 (venta.no_anulable)
+POST {{host}}/api/ventas/{{venta2.response.body.$.id}}/anular
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{ "motivo": "Intento repetido" }
+
+### 18. Alertas de stock -> vacías otra vez (7 unidades, mínimo 5)
+GET {{host}}/api/inventario/alertas-stock
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 19. Kardex -> compra, venta 1, venta 2 y la devolución por anulación, con saldos y costos
+GET {{host}}/api/inventario/kardex?varianteId={{detalle.response.body.$.variantes[0].id}}
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 20. AISLAMIENTO: el negocio B pide la venta del negocio A -> debe responder 404
+GET {{host}}/api/ventas/{{venta1.response.body.$.id}}
+Authorization: Bearer {{loginB.response.body.$.accessToken}}
+
+### 21. Sin token -> debe responder 401
+GET {{host}}/api/ventas

@@ -1,0 +1,112 @@
+# Alta de negocios, inicio de sesión y permisos. Ejecuta las peticiones EN ORDEN.
+# Ajusta el puerto con el que aparece en la consola al ejecutar la API.
+@host = http://localhost:5248
+
+# Pega aquí el valor que guardaste en User Secrets como Plataforma:Clave
+@plataformaClave = RfVT8nLh2dqEouvPUJ5iGwma
+
+### 1. Crear el negocio demo-a con su administrador (solo la primera vez; repetirlo responde 409)
+# Respuesta 201 con el negocio y el resultado de inicializar su inventario.
+POST {{host}}/api/plataforma/negocios
+Content-Type: application/json
+X-Plataforma-Key: {{plataformaClave}}
+
+{
+  "codigo": "demo-a",
+  "nombre": "Ferretería Demo A",
+  "adminEmail": "admin@demo-a.com",
+  "adminNombre": "Administrador A",
+  "adminPassword": "Admin12345"
+}
+
+### 2. Crear el negocio demo-b (para probar el aislamiento entre negocios)
+POST {{host}}/api/plataforma/negocios
+Content-Type: application/json
+X-Plataforma-Key: {{plataformaClave}}
+
+{
+  "codigo": "demo-b",
+  "nombre": "Ferretería Demo B",
+  "adminEmail": "admin@demo-b.com",
+  "adminNombre": "Administrador B",
+  "adminPassword": "Admin12345"
+}
+
+### 3. Alta de negocio con clave de plataforma incorrecta -> debe responder 401
+POST {{host}}/api/plataforma/negocios
+Content-Type: application/json
+X-Plataforma-Key: clave-incorrecta-123456
+
+{ "codigo": "intruso", "nombre": "Intruso", "adminEmail": "a@b.com", "adminNombre": "X", "adminPassword": "Admin12345" }
+
+### 4. Iniciar sesión como administrador del negocio A -> 200 con accessToken y permisos
+# @name loginA
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-a", "email": "admin@demo-a.com", "password": "Admin12345" }
+
+### 5. Contraseña incorrecta -> debe responder 401 (credenciales.invalidas)
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-a", "email": "admin@demo-a.com", "password": "Incorrecta1" }
+
+### 6. Quién soy según mi token -> 200 con id, correo, negocioId y los 6 permisos
+GET {{host}}/api/auth/yo
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 7. Listar los roles del negocio A -> Administrador, Almacenista y Vendedor
+GET {{host}}/api/identidad/roles
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 8. Crear un usuario con rol Almacenista
+POST {{host}}/api/identidad/usuarios
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{
+  "email": "almacenista@demo-a.com",
+  "nombreCompleto": "Carlos Almacenista",
+  "password": "Almacen12345",
+  "roles": ["Almacenista"]
+}
+
+### 9. Listar usuarios del negocio A -> el administrador y el almacenista
+GET {{host}}/api/identidad/usuarios
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 10. Iniciar sesión como el almacenista
+# @name loginAlmacenista
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-a", "email": "almacenista@demo-a.com", "password": "Almacen12345" }
+
+### 11. PERMISOS: el almacenista intenta crear un producto -> debe responder 403 (no tiene catalogo.escribir)
+POST {{host}}/api/catalogo/productos
+Content-Type: application/json
+Authorization: Bearer {{loginAlmacenista.response.body.$.accessToken}}
+
+{ "nombre": "Prueba", "sku": "PRU-1", "unidadBaseId": "00000000-0000-0000-0000-000000000001" }
+
+### 12. PERMISOS: el almacenista intenta crear usuarios -> debe responder 403
+GET {{host}}/api/identidad/usuarios
+Authorization: Bearer {{loginAlmacenista.response.body.$.accessToken}}
+
+### 13. PERMISOS: el almacenista SÍ puede consultar el catálogo -> 200
+GET {{host}}/api/catalogo/productos
+Authorization: Bearer {{loginAlmacenista.response.body.$.accessToken}}
+
+### 14. Sin token -> debe responder 401
+GET {{host}}/api/catalogo/productos
+
+### 15. Token manipulado -> debe responder 401
+GET {{host}}/api/catalogo/productos
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.firma-falsa
+
+### 16. Un negocio inexistente recibe el mismo error genérico que una contraseña mala -> 401
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "no-existe", "email": "admin@demo-a.com", "password": "Admin12345" }

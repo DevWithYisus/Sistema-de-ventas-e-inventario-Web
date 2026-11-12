@@ -1,6 +1,8 @@
 using Core.Application;
 using Core.Infrastructure.Persistence;
 using Inventario.Application.Abstracciones;
+using Inventario.Application.Alertas;
+using Inventario.Contracts;
 using Inventario.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,6 +22,13 @@ public static class InventarioModule
         services.AddScoped<IInventarioUnitOfWork>(sp => sp.GetRequiredService<InventarioDbContext>());
         services.AddScoped<IInventarioRepositorio, InventarioRepositorio>();
         services.AddScoped<IInventarioConsultas, InventarioConsultas>();
+
+        // Alertas de bajo stock
+        services.AddScoped<IAlertasStockConsultas, AlertasStockConsultas>();
+        services.AddScoped<CalculadorDeAlertas>();
+
+        // Contrato público para los demás módulos
+        services.AddScoped<IInventarioApi, InventarioApi>();
 
         services.AddApplicationHandlers(typeof(IInventarioRepositorio).Assembly);
 

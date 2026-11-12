@@ -26,7 +26,9 @@ internal sealed class CatalogoApi(CatalogoDbContext db) : ICatalogoApi
                 p.ManejaInventario,
                 p.ManejaLotes,
                 p.ManejaVencimiento,
-                p.PermiteStockNegativo
+                p.PermiteStockNegativo,
+                v.PrecioBase,
+                v.StockMinimo
             })
             .ToListAsync(cancellationToken);
 
@@ -44,6 +46,29 @@ internal sealed class CatalogoApi(CatalogoDbContext db) : ICatalogoApi
                 presentaciones
                     .Where(p => p.VarianteId == v.Id)
                     .Select(p => new InfoPresentacion(p.UnidadId, p.Factor))
-                    .ToList()));
+                    .ToList(),
+                v.PrecioBase,
+                v.StockMinimo));
+    }
+
+    public async Task<IReadOnlyList<VarianteConStockMinimo>> ListarVariantesConStockMinimoAsync(
+        IReadOnlyCollection<Guid>? varianteIds, CancellationToken cancellationToken)
+    {
+        var consulta = db.Variantes.AsNoTracking().Where(v => v.Activo && v.StockMinimo > 0);
+
+        if (varianteIds is not null)
+        {
+            var ids = varianteIds.Distinct().ToList();
+            consulta = consulta.Where(v => ids.Contains(v.Id));
+        }
+
+        return await consulta
+            .Join(db.Productos.Where(p => p.Activo && p.ManejaInventario),
+                v => v.ProductoId, p => p.Id,
+                (v, p) => new VarianteConStockMinimo(
+                    v.Id, v.Sku,
+                    v.Nombre == null ? p.Nombre : p.Nombre + " - " + v.Nombre,
+                    v.StockMinimo))
+            .ToListAsync(cancellationToken);
     }
 }

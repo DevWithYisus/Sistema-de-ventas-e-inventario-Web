@@ -1,5 +1,6 @@
 using Core.Application.Common;
 using Core.Application.Messaging;
+using Core.Domain.Seguridad;
 using Inventario.Application;
 using Inventario.Application.Almacenes;
 using Inventario.Application.Inicializacion;
@@ -16,60 +17,67 @@ public static class InventarioEndpoints
 
         // ---------- Preparar el inventario de un negocio ----------
         grupo.MapPost("/inicializar", async (
-            ICommandHandler<InicializarInventarioCommand, InicializacionDto> handler,
-            CancellationToken ct) =>
-            (await handler.HandleAsync(new InicializarInventarioCommand(), ct)).ToHttp());
+                ICommandHandler<InicializarInventarioCommand, InicializacionDto> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(new InicializarInventarioCommand(), ct)).ToHttp())
+            .RequireAuthorization(Permisos.InventarioAdministrar);
 
         // ---------- Almacenes ----------
         grupo.MapPost("/almacenes", async (
-            CrearAlmacenCommand comando,
-            ICommandHandler<CrearAlmacenCommand, Guid> handler,
-            CancellationToken ct) =>
-            (await handler.HandleAsync(comando, ct)).ToCreated("/api/inventario/almacenes"));
+                CrearAlmacenCommand comando,
+                ICommandHandler<CrearAlmacenCommand, Guid> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(comando, ct)).ToCreated("/api/inventario/almacenes"))
+            .RequireAuthorization(Permisos.InventarioAdministrar);
 
         grupo.MapGet("/almacenes", async (
-            IQueryHandler<ListarAlmacenesQuery, IReadOnlyList<AlmacenDto>> handler,
-            CancellationToken ct) =>
-            (await handler.HandleAsync(new ListarAlmacenesQuery(), ct)).ToHttp());
+                IQueryHandler<ListarAlmacenesQuery, IReadOnlyList<AlmacenDto>> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(new ListarAlmacenesQuery(), ct)).ToHttp())
+            .RequireAuthorization(Permisos.InventarioLeer);
 
         // ---------- Movimientos ----------
         grupo.MapPost("/movimientos", async (
-            RegistrarMovimientoCommand comando,
-            ICommandHandler<RegistrarMovimientoCommand, MovimientoRegistradoDto> handler,
-            CancellationToken ct) =>
-            (await handler.HandleAsync(comando, ct)).ToCreated(r => $"/api/inventario/movimientos/{r.Id}"));
+                RegistrarMovimientoCommand comando,
+                ICommandHandler<RegistrarMovimientoCommand, MovimientoRegistradoDto> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(comando, ct)).ToCreated(r => $"/api/inventario/movimientos/{r.Id}"))
+            .RequireAuthorization(Permisos.InventarioMover);
 
         grupo.MapGet("/movimientos/{id:guid}", async (
-            Guid id,
-            IQueryHandler<ObtenerMovimientoQuery, MovimientoDto> handler,
-            CancellationToken ct) =>
-            (await handler.HandleAsync(new ObtenerMovimientoQuery(id), ct)).ToHttp());
+                Guid id,
+                IQueryHandler<ObtenerMovimientoQuery, MovimientoDto> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(new ObtenerMovimientoQuery(id), ct)).ToHttp())
+            .RequireAuthorization(Permisos.InventarioLeer);
 
         // ---------- Consultas ----------
         grupo.MapGet("/stock", async (
-            Guid? varianteId,
-            Guid? almacenId,
-            bool? soloConSaldo,
-            int? pagina,
-            int? tamanoPagina,
-            IQueryHandler<ConsultarStockQuery, PaginaDto<ExistenciaDto>> handler,
-            CancellationToken ct) =>
-            (await handler.HandleAsync(
-                new ConsultarStockQuery(varianteId, almacenId, soloConSaldo ?? true, pagina ?? 1, tamanoPagina ?? 50), ct))
-            .ToHttp());
+                Guid? varianteId,
+                Guid? almacenId,
+                bool? soloConSaldo,
+                int? pagina,
+                int? tamanoPagina,
+                IQueryHandler<ConsultarStockQuery, PaginaDto<ExistenciaDto>> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(
+                    new ConsultarStockQuery(varianteId, almacenId, soloConSaldo ?? true, pagina ?? 1, tamanoPagina ?? 50), ct))
+                .ToHttp())
+            .RequireAuthorization(Permisos.InventarioLeer);
 
         grupo.MapGet("/kardex", async (
-            Guid varianteId,
-            Guid? almacenId,
-            DateTimeOffset? desde,
-            DateTimeOffset? hasta,
-            int? pagina,
-            int? tamanoPagina,
-            IQueryHandler<ConsultarKardexQuery, PaginaDto<KardexDto>> handler,
-            CancellationToken ct) =>
-            (await handler.HandleAsync(
-                new ConsultarKardexQuery(varianteId, almacenId, desde, hasta, pagina ?? 1, tamanoPagina ?? 50), ct))
-            .ToHttp());
+                Guid varianteId,
+                Guid? almacenId,
+                DateTimeOffset? desde,
+                DateTimeOffset? hasta,
+                int? pagina,
+                int? tamanoPagina,
+                IQueryHandler<ConsultarKardexQuery, PaginaDto<KardexDto>> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(
+                    new ConsultarKardexQuery(varianteId, almacenId, desde, hasta, pagina ?? 1, tamanoPagina ?? 50), ct))
+                .ToHttp())
+            .RequireAuthorization(Permisos.InventarioLeer);
 
         return app;
     }

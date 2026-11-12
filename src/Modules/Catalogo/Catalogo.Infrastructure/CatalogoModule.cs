@@ -1,4 +1,5 @@
 using Catalogo.Application.Abstracciones;
+using Catalogo.Application.Variantes;
 using Catalogo.Contracts;
 using Catalogo.Infrastructure.Persistence;
 using Core.Application;
@@ -21,6 +22,7 @@ public static class CatalogoModule
         services.AddScoped<ICatalogoUnitOfWork>(sp => sp.GetRequiredService<CatalogoDbContext>());
         services.AddScoped<ICatalogoRepositorio, CatalogoRepositorio>();
         services.AddScoped<ICatalogoConsultas, CatalogoConsultas>();
+        services.AddScoped<IVariantesRepositorio, VariantesRepositorio>();
 
         // Contrato público para los demás módulos
         services.AddScoped<ICatalogoApi, CatalogoApi>();

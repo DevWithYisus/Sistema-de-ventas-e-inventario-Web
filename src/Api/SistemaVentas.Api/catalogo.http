@@ -1,75 +1,69 @@
-# Pruebas del módulo Catálogo. Ajusta el puerto con el que aparece en la consola al ejecutar la API.
+# Pruebas del módulo Catálogo (con inicio de sesión). Ajusta el puerto con el que aparece en la consola.
+# Requisito: haber ejecutado UNA VEZ identidad.http (crea los negocios demo-a y demo-b).
 @host = http://localhost:5000
-@negocioA = 11111111-1111-1111-1111-111111111111
-@negocioB = 22222222-2222-2222-2222-222222222222
 
-### 1. Sin encabezado de negocio -> debe responder 400 (tenant.requerido)
+### Iniciar sesión en el negocio A
+# @name loginA
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-a", "email": "admin@demo-a.com", "password": "Admin12345" }
+
+### Iniciar sesión en el negocio B
+# @name loginB
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{ "negocio": "demo-b", "email": "admin@demo-b.com", "password": "Admin12345" }
+
+### 1. Sin token -> debe responder 401
 GET {{host}}/api/catalogo/productos
 
-### 2. Crear unidad de medida en el negocio A
+### 2. Crear unidad de medida en el negocio A (código aleatorio para poder repetir)
 # @name crearUnidadA
 POST {{host}}/api/catalogo/unidades-medida
 Content-Type: application/json
-X-Tenant-Id: {{negocioA}}
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
 
-{ "codigo": "UND", "nombre": "Unidad", "permiteDecimales": false }
+{ "codigo": "U{{$randomInt 1000 9999}}", "nombre": "Unidad", "permiteDecimales": false }
 
-### 3. Crear producto en el negocio A (usa la unidad creada arriba)
+### 3. Crear producto en el negocio A
 # @name crearProductoA
 POST {{host}}/api/catalogo/productos
 Content-Type: application/json
-X-Tenant-Id: {{negocioA}}
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
 
 {
-  "nombre": "Martillo de acero 16 oz",
-  "sku": "mar-001",
+  "nombre": "Alimento para perro 10 kg",
+  "sku": "ALI-001",
   "unidadBaseId": "{{crearUnidadA.response.body.$.id}}",
-  "precio": 35000,
-  "costo": 21000
+  "precio": 95000,
+  "costo": 70000
 }
 
-### 4. Intentar repetir el SKU -> debe responder 409 (producto.sku_duplicado)
+### 4. Repetir el SKU (en minúscula) -> debe responder 409 (producto.sku_duplicado)
 POST {{host}}/api/catalogo/productos
 Content-Type: application/json
-X-Tenant-Id: {{negocioA}}
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
 
 {
-  "nombre": "Otro martillo",
-  "sku": "MAR-001",
+  "nombre": "Otro alimento",
+  "sku": "ali-001",
   "unidadBaseId": "{{crearUnidadA.response.body.$.id}}"
 }
 
 ### 5. Obtener el producto por id (negocio A) -> 200
 GET {{host}}/api/catalogo/productos/{{crearProductoA.response.body.$.id}}
-X-Tenant-Id: {{negocioA}}
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
 
-### 6. Listar y buscar productos (negocio A) -> aparece el martillo
-GET {{host}}/api/catalogo/productos?busqueda=martillo&pagina=1&tamanoPagina=10
-X-Tenant-Id: {{negocioA}}
+### 6. Buscar productos (negocio A) -> aparece el alimento
+GET {{host}}/api/catalogo/productos?busqueda=alimento&pagina=1&tamanoPagina=10
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
 
-### 7. AISLAMIENTO: el negocio B pide el producto del negocio A -> debe responder 404
+### 7. AISLAMIENTO: el negocio B pide el producto del A -> debe responder 404
 GET {{host}}/api/catalogo/productos/{{crearProductoA.response.body.$.id}}
-X-Tenant-Id: {{negocioB}}
+Authorization: Bearer {{loginB.response.body.$.accessToken}}
 
 ### 8. AISLAMIENTO: el negocio B lista sus productos -> lista vacía
 GET {{host}}/api/catalogo/productos
-X-Tenant-Id: {{negocioB}}
-
-### 9. El negocio B puede usar el mismo SKU sin conflicto (necesita su propia unidad)
-# @name crearUnidadB
-POST {{host}}/api/catalogo/unidades-medida
-Content-Type: application/json
-X-Tenant-Id: {{negocioB}}
-
-{ "codigo": "UND", "nombre": "Unidad", "permiteDecimales": false }
-
-###
-POST {{host}}/api/catalogo/productos
-Content-Type: application/json
-X-Tenant-Id: {{negocioB}}
-
-{
-  "nombre": "Martillo del negocio B",
-  "sku": "MAR-001",
-  "unidadBaseId": "{{crearUnidadB.response.body.$.id}}"
-}
+Authorization: Bearer {{loginB.response.body.$.accessToken}}

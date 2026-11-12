@@ -15,12 +15,24 @@
     <Project Path="src/Modules/Catalogo/Catalogo.Domain/Catalogo.Domain.csproj" />
     <Project Path="src/Modules/Catalogo/Catalogo.Infrastructure/Catalogo.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Identidad/">
+    <Project Path="src/Modules/Identidad/Identidad.Application/Identidad.Application.csproj" />
+    <Project Path="src/Modules/Identidad/Identidad.Domain/Identidad.Domain.csproj" />
+    <Project Path="src/Modules/Identidad/Identidad.Infrastructure/Identidad.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Modules/Inventario/">
     <Project Path="src/Modules/Inventario/Inventario.Application/Inventario.Application.csproj" />
+    <Project Path="src/Modules/Inventario/Inventario.Contracts/Inventario.Contracts.csproj" />
     <Project Path="src/Modules/Inventario/Inventario.Domain/Inventario.Domain.csproj" />
     <Project Path="src/Modules/Inventario/Inventario.Infrastructure/Inventario.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Modules/Ventas/">
+    <Project Path="src/Modules/Ventas/Ventas.Application/Ventas.Application.csproj" />
+    <Project Path="src/Modules/Ventas/Ventas.Domain/Ventas.Domain.csproj" />
+    <Project Path="src/Modules/Ventas/Ventas.Infrastructure/Ventas.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Inventario.UnitTests/Inventario.UnitTests.csproj" />
+    <Project Path="tests/Ventas.UnitTests/Ventas.UnitTests.csproj" />
   </Folder>
 </Solution>

@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.*" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.14" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.14">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -20,6 +21,12 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Modules\Catalogo\Catalogo.Infrastructure\Catalogo.Infrastructure.csproj" />
     <ProjectReference Include="..\..\Modules\Inventario\Inventario.Infrastructure\Inventario.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Identidad\Identidad.Infrastructure\Identidad.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Inventario\Inventario.Application\Inventario.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Catalogo\Catalogo.Application\Catalogo.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Ventas\Ventas.Infrastructure\Ventas.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Modules\Ventas\Ventas.Application\Ventas.Application.csproj" />
+    <ProjectReference Include="..\..\Modules\Inventario\Inventario.Contracts\Inventario.Contracts.csproj" />
   </ItemGroup>
 
 </Project>

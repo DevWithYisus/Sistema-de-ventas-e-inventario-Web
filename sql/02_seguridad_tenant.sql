@@ -8,7 +8,7 @@
 -- =====================================================================
 DO $$
 DECLARE
-    esquemas text[] := ARRAY['catalogo', 'inventario'];
+    esquemas text[] := ARRAY['catalogo', 'inventario', 'identidad', 'ventas'];
     s text;
     t record;
 BEGIN

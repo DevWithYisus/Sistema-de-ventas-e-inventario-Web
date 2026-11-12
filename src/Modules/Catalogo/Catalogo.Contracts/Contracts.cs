@@ -15,7 +15,12 @@ public sealed record InfoVariante(
     bool ManejaLotes,
     bool ManejaVencimiento,
     bool? PermiteStockNegativo,
-    IReadOnlyList<InfoPresentacion> Presentaciones);
+    IReadOnlyList<InfoPresentacion> Presentaciones,
+    decimal PrecioBase,
+    decimal StockMinimo);
+
+/// <summary>Variante que tiene definido un stock mínimo (candidata a alertas de bajo stock).</summary>
+public sealed record VarianteConStockMinimo(Guid VarianteId, string Sku, string Nombre, decimal StockMinimo);
 
 /// <summary>
 /// Puerta de entrada pública del módulo Catálogo. Los demás módulos hablan con Catálogo
@@ -25,4 +30,9 @@ public interface ICatalogoApi
 {
     Task<IReadOnlyDictionary<Guid, InfoVariante>> ObtenerVariantesAsync(
         IReadOnlyCollection<Guid> varianteIds, CancellationToken cancellationToken);
+
+    /// <summary>Variantes activas de productos con inventario cuyo stock mínimo es mayor que cero.</summary>
+    /// <param name="varianteIds">Si se indica, limita la búsqueda a esas variantes.</param>
+    Task<IReadOnlyList<VarianteConStockMinimo>> ListarVariantesConStockMinimoAsync(
+        IReadOnlyCollection<Guid>? varianteIds, CancellationToken cancellationToken);
 }
