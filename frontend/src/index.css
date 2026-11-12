@@ -1,0 +1,49 @@
+@import "tailwindcss";
+
+/*
+  Paleta tomada del logo de Minino's:
+  - bosque: el verde del letrero (color principal: menú, botones, gráficos)
+  - ambar:  el naranja del listón "PET SHOP" (acentos, avisos)
+  - crema:  el amarillo claro de las letras (fondo de la app)
+  Los neutros usan "stone" de Tailwind, que es gris cálido y combina con el café del perro.
+*/
+@theme {
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+
+  --color-bosque-50: #f1f7ec;
+  --color-bosque-100: #dfeed4;
+  --color-bosque-200: #c0dcab;
+  --color-bosque-300: #97c278;
+  --color-bosque-400: #6fa44d;
+  --color-bosque-500: #4f8733;
+  --color-bosque-600: #3c6b27;
+  --color-bosque-700: #2f5421;
+  --color-bosque-800: #27431d;
+  --color-bosque-900: #1f3517;
+  --color-bosque-950: #12200c;
+
+  --color-ambar-50: #fef8ec;
+  --color-ambar-100: #fcecc9;
+  --color-ambar-200: #f9d78f;
+  --color-ambar-300: #f4b948;
+  --color-ambar-400: #eea52f;
+  --color-ambar-500: #e7942f;
+  --color-ambar-600: #c97418;
+  --color-ambar-700: #a65815;
+  --color-ambar-800: #864617;
+  --color-ambar-900: #6e3a16;
+
+  --color-crema-50: #fefcf5;
+  --color-crema-100: #fbf6e6;
+  --color-crema-200: #f5ebc8;
+}
+
+@layer base {
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-crema-100 font-sans text-stone-800 antialiased;
+  }
+}

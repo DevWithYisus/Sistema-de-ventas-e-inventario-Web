@@ -10,7 +10,7 @@ namespace Identidad.Application.Negocios;
 
 /// <summary>Da de alta un cliente nuevo: el negocio, sus roles y su primer usuario administrador.</summary>
 public sealed record ProvisionarNegocioCommand(
-    string Codigo, string Nombre, string AdminEmail, string AdminNombre, string AdminPassword)
+    string Codigo, string Nombre, string AdminUsuario, string AdminNombre, string AdminPassword, string? AdminEmail = null)
     : ICommand<NegocioProvisionadoDto>;
 
 public sealed class ProvisionarNegocioValidator : AbstractValidator<ProvisionarNegocioCommand>
@@ -19,7 +19,8 @@ public sealed class ProvisionarNegocioValidator : AbstractValidator<ProvisionarN
     {
         RuleFor(x => x.Codigo).NotEmpty().MaximumLength(40);
         RuleFor(x => x.Nombre).NotEmpty().MaximumLength(150);
-        RuleFor(x => x.AdminEmail).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.AdminUsuario).NotEmpty().MaximumLength(Usuario.LongitudMaximaNombreUsuario);
+        RuleFor(x => x.AdminEmail).EmailAddress().MaximumLength(256).When(x => !string.IsNullOrWhiteSpace(x.AdminEmail));
         RuleFor(x => x.AdminNombre).NotEmpty().MaximumLength(150);
         RuleFor(x => x.AdminPassword).PasswordSegura();
     }
@@ -49,7 +50,8 @@ internal sealed class ProvisionarNegocioHandler(
         establecedor.Establecer(negocio.Id);
 
         var roles = RolesSistema.Crear();
-        var administrador = Usuario.Crear(command.AdminEmail, command.AdminNombre, hasheador.Hashear(command.AdminPassword));
+        var administrador = Usuario.Crear(
+            command.AdminUsuario.Trim(), command.AdminNombre, hasheador.Hashear(command.AdminPassword), command.AdminEmail);
         administrador.AsignarRol(roles.Single(r => r.Nombre == RolesSistema.Administrador).Id);
 
         repositorio.Agregar(negocio);

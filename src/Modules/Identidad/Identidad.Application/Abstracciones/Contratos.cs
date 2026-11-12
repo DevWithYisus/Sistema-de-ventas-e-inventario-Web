@@ -29,7 +29,8 @@ public interface IIdentidadRepositorio
 
     Task<Negocio?> ObtenerNegocioPorCodigoAsync(string codigo, CancellationToken ct);
     Task<bool> NegocioCodigoExisteAsync(string codigo, CancellationToken ct);
-    Task<Usuario?> ObtenerUsuarioPorEmailAsync(string email, CancellationToken ct);
+    Task<Usuario?> ObtenerUsuarioPorNombreUsuarioAsync(string nombreUsuario, CancellationToken ct);
+    Task<bool> NombreUsuarioExisteAsync(string nombreUsuario, CancellationToken ct);
     Task<bool> EmailExisteAsync(string email, CancellationToken ct);
     Task<IReadOnlyList<Rol>> ObtenerRolesAsync(CancellationToken ct);
     Task<IReadOnlyList<string>> ObtenerPermisosAsync(Guid usuarioId, CancellationToken ct);

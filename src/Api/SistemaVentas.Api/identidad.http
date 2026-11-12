@@ -14,6 +14,7 @@ X-Plataforma-Key: {{plataformaClave}}
 {
   "codigo": "demo-a",
   "nombre": "Ferretería Demo A",
+  "adminUsuario": "admin",
   "adminEmail": "admin@demo-a.com",
   "adminNombre": "Administrador A",
   "adminPassword": "Admin12345"
@@ -27,6 +28,7 @@ X-Plataforma-Key: {{plataformaClave}}
 {
   "codigo": "demo-b",
   "nombre": "Ferretería Demo B",
+  "adminUsuario": "admin",
   "adminEmail": "admin@demo-b.com",
   "adminNombre": "Administrador B",
   "adminPassword": "Admin12345"
@@ -37,20 +39,20 @@ POST {{host}}/api/plataforma/negocios
 Content-Type: application/json
 X-Plataforma-Key: clave-incorrecta-123456
 
-{ "codigo": "intruso", "nombre": "Intruso", "adminEmail": "a@b.com", "adminNombre": "X", "adminPassword": "Admin12345" }
+{ "codigo": "intruso", "nombre": "Intruso", "adminUsuario": "intruso", "adminNombre": "X", "adminPassword": "Admin12345" }
 
 ### 4. Iniciar sesión como administrador del negocio A -> 200 con accessToken y permisos
 # @name loginA
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "negocio": "demo-a", "email": "admin@demo-a.com", "password": "Admin12345" }
+{ "negocio": "demo-a", "usuario": "admin", "password": "Admin12345" }
 
 ### 5. Contraseña incorrecta -> debe responder 401 (credenciales.invalidas)
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "negocio": "demo-a", "email": "admin@demo-a.com", "password": "Incorrecta1" }
+{ "negocio": "demo-a", "usuario": "admin", "password": "Incorrecta1" }
 
 ### 6. Quién soy según mi token -> 200 con id, correo, negocioId y los 6 permisos
 GET {{host}}/api/auth/yo
@@ -66,6 +68,7 @@ Content-Type: application/json
 Authorization: Bearer {{loginA.response.body.$.accessToken}}
 
 {
+  "nombreUsuario": "almacenista",
   "email": "almacenista@demo-a.com",
   "nombreCompleto": "Carlos Almacenista",
   "password": "Almacen12345",
@@ -81,7 +84,7 @@ Authorization: Bearer {{loginA.response.body.$.accessToken}}
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "negocio": "demo-a", "email": "almacenista@demo-a.com", "password": "Almacen12345" }
+{ "negocio": "demo-a", "usuario": "almacenista", "password": "Almacen12345" }
 
 ### 11. PERMISOS: el almacenista intenta crear un producto -> debe responder 403 (no tiene catalogo.escribir)
 POST {{host}}/api/catalogo/productos
@@ -109,4 +112,4 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ4In0.firma-falsa
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "negocio": "no-existe", "email": "admin@demo-a.com", "password": "Admin12345" }
+{ "negocio": "no-existe", "usuario": "admin", "password": "Admin12345" }

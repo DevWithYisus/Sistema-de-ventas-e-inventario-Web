@@ -144,7 +144,6 @@ namespace Identidad.Infrastructure.Persistence.Migrations
                         .HasColumnName("eliminado_en");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
                         .HasColumnName("email");
@@ -167,6 +166,12 @@ namespace Identidad.Infrastructure.Persistence.Migrations
                         .HasColumnType("character varying(150)")
                         .HasColumnName("nombre_completo");
 
+                    b.Property<string>("NombreUsuario")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("nombre_usuario");
+
                     b.Property<string>("PasswordHash")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -184,6 +189,10 @@ namespace Identidad.Infrastructure.Persistence.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("TenantId", "Email")
+                        .IsUnique()
+                        .HasFilter("eliminado_en IS NULL");
+
+                    b.HasIndex("TenantId", "NombreUsuario")
                         .IsUnique()
                         .HasFilter("eliminado_en IS NULL");
 

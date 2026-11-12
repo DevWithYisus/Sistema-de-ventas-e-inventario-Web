@@ -8,14 +8,14 @@
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "negocio": "demo-a", "email": "admin@demo-a.com", "password": "Admin12345" }
+{ "negocio": "demo-a", "usuario": "admin", "password": "Admin12345" }
 
 ### Iniciar sesión en el negocio B (para la prueba de aislamiento)
 # @name loginB
 POST {{host}}/api/auth/login
 Content-Type: application/json
 
-{ "negocio": "demo-b", "email": "admin@demo-b.com", "password": "Admin12345" }
+{ "negocio": "demo-b", "usuario": "admin", "password": "Admin12345" }
 
 ### 1. Crear una bodega para la prueba
 # @name bodega

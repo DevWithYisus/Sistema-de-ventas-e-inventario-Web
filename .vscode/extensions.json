@@ -1,0 +1,9 @@
+{
+  // VS Code las sugiere al abrir la carpeta del repositorio
+  "recommendations": [
+    "bradlc.vscode-tailwindcss",
+    "esbenp.prettier-vscode",
+    "humao.rest-client",
+    "ms-dotnettools.csdevkit"
+  ]
+}

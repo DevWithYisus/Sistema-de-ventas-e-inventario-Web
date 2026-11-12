@@ -4,17 +4,18 @@ using Core.Application.Results;
 using Core.Application.Validation;
 using FluentValidation;
 using Identidad.Application.Abstracciones;
+using Identidad.Domain;
 
 namespace Identidad.Application.Autenticacion;
 
-public sealed record IniciarSesionCommand(string Negocio, string Email, string Password) : ICommand<SesionDto>;
+public sealed record IniciarSesionCommand(string Negocio, string Usuario, string Password) : ICommand<SesionDto>;
 
 public sealed class IniciarSesionValidator : AbstractValidator<IniciarSesionCommand>
 {
     public IniciarSesionValidator()
     {
         RuleFor(x => x.Negocio).NotEmpty().MaximumLength(40);
-        RuleFor(x => x.Email).NotEmpty().MaximumLength(256);
+        RuleFor(x => x.Usuario).NotEmpty().MaximumLength(Usuario.LongitudMaximaNombreUsuario);
         RuleFor(x => x.Password).NotEmpty().MaximumLength(100);
     }
 }
@@ -48,7 +49,7 @@ internal sealed class IniciarSesionHandler(
         // A partir de aquí todas las consultas se limitan a este negocio
         establecedor.Establecer(negocio.Id);
 
-        var usuario = await repositorio.ObtenerUsuarioPorEmailAsync(command.Email.Trim().ToLowerInvariant(), ct);
+        var usuario = await repositorio.ObtenerUsuarioPorNombreUsuarioAsync(command.Usuario.Trim().ToLowerInvariant(), ct);
         var ahora = reloj.GetUtcNow();
 
         if (usuario is null || !usuario.Activo || usuario.EstaBloqueado(ahora))
@@ -73,6 +74,6 @@ internal sealed class IniciarSesionHandler(
         return new SesionDto(
             token.AccessToken,
             token.ExpiraEn,
-            new UsuarioSesionDto(usuario.Id, usuario.Email, usuario.NombreCompleto, negocio.Id, negocio.Nombre, permisos));
+            new UsuarioSesionDto(usuario.Id, usuario.NombreUsuario, usuario.Email, usuario.NombreCompleto, negocio.Id, negocio.Nombre, permisos));
     }
 }

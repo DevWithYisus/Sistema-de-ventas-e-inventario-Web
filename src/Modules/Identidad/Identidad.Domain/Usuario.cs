@@ -11,7 +11,11 @@ public sealed class Usuario : AuditableEntity
 
     private Usuario() { }
 
-    public string Email { get; private set; } = null!;
+    /// <summary>Con lo que se inicia sesión. Minúsculas, único dentro del negocio (ej. "maria.gomez").</summary>
+    public string NombreUsuario { get; private set; } = null!;
+
+    /// <summary>Opcional: no todos los empleados tienen correo. Servirá para recuperar la contraseña.</summary>
+    public string? Email { get; private set; }
     public string NombreCompleto { get; private set; } = null!;
     public string PasswordHash { get; private set; } = null!;
     public bool Activo { get; private set; } = true;
@@ -21,18 +25,47 @@ public sealed class Usuario : AuditableEntity
 
     public IReadOnlyCollection<UsuarioRol> Roles => _roles;
 
-    public static Usuario Crear(string email, string nombreCompleto, string passwordHash)
+    public const int LongitudMinimaNombreUsuario = 3;
+    public const int LongitudMaximaNombreUsuario = 50;
+
+    public static Usuario Crear(string nombreUsuario, string nombreCompleto, string passwordHash, string? email = null)
     {
+        return new Usuario
+        {
+            NombreUsuario = NormalizarNombreUsuario(nombreUsuario),
+            Email = NormalizarEmail(email),
+            NombreCompleto = Guard.NoVacio(nombreCompleto, nameof(nombreCompleto), 150),
+            PasswordHash = Guard.NoVacio(passwordHash, nameof(passwordHash), 500)
+        };
+    }
+
+    /// <summary>
+    /// Minúsculas, sin espacios ni tildes: solo letras, números, punto, guion y guion bajo.
+    /// Así "Maria.Gomez" y "maria.gomez" son el mismo usuario al iniciar sesión.
+    /// </summary>
+    public static string NormalizarNombreUsuario(string nombreUsuario)
+    {
+        var valor = Guard.NoVacio(nombreUsuario, nameof(nombreUsuario), LongitudMaximaNombreUsuario).ToLowerInvariant();
+
+        if (valor.Length < LongitudMinimaNombreUsuario || !valor.All(EsCaracterValido))
+            throw new DomainException("usuario.nombre_usuario_invalido",
+                $"El nombre de usuario debe tener entre {LongitudMinimaNombreUsuario} y {LongitudMaximaNombreUsuario} caracteres: " +
+                "letras sin tilde, números, punto, guion o guion bajo, sin espacios.");
+
+        return valor;
+
+        static bool EsCaracterValido(char c) => c is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '.' or '-' or '_';
+    }
+
+    private static string? NormalizarEmail(string? email)
+    {
+        if (string.IsNullOrWhiteSpace(email)) return null;
+
         var correo = Guard.NoVacio(email, nameof(email), 256).ToLowerInvariant();
         if (!correo.Contains('@'))
             throw new DomainException("usuario.email_invalido", "El correo electrónico no es válido.");
 
-        return new Usuario
-        {
-            Email = correo,
-            NombreCompleto = Guard.NoVacio(nombreCompleto, nameof(nombreCompleto), 150),
-            PasswordHash = Guard.NoVacio(passwordHash, nameof(passwordHash), 500)
-        };
+        return correo;
     }
 
     public void AsignarRol(Guid rolId)

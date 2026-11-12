@@ -33,6 +33,7 @@ public static class IdentidadEndpoints
         auth.MapGet("/yo", (ClaimsPrincipal usuario) => Results.Ok(new
         {
             id = usuario.FindFirst("sub")?.Value,
+            usuario = usuario.FindFirst("preferred_username")?.Value,
             email = usuario.FindFirst("email")?.Value,
             nombre = usuario.FindFirst("name")?.Value,
             negocioId = usuario.FindFirst("tenant_id")?.Value,

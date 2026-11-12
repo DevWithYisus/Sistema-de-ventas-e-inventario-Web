@@ -9,13 +9,15 @@ namespace Identidad.Application.Usuarios;
 
 // ---------- Crear usuario ----------
 public sealed record CrearUsuarioCommand(
-    string Email, string NombreCompleto, string Password, IReadOnlyList<string> Roles) : ICommand<Guid>;
+    string NombreUsuario, string NombreCompleto, string Password, IReadOnlyList<string> Roles, string? Email = null)
+    : ICommand<Guid>;
 
 public sealed class CrearUsuarioValidator : AbstractValidator<CrearUsuarioCommand>
 {
     public CrearUsuarioValidator()
     {
-        RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
+        RuleFor(x => x.NombreUsuario).NotEmpty().MaximumLength(Usuario.LongitudMaximaNombreUsuario);
+        RuleFor(x => x.Email).EmailAddress().MaximumLength(256).When(x => !string.IsNullOrWhiteSpace(x.Email));
         RuleFor(x => x.NombreCompleto).NotEmpty().MaximumLength(150);
         RuleFor(x => x.Password).PasswordSegura();
         RuleFor(x => x.Roles).NotEmpty().WithMessage("Asigna al menos un rol.");
@@ -34,8 +36,13 @@ internal sealed class CrearUsuarioHandler(
         if (!validacion.IsValid)
             return Error.Validation("usuario.invalido", validacion.ComoMensaje());
 
-        var email = command.Email.Trim().ToLowerInvariant();
-        if (await repositorio.EmailExisteAsync(email, ct))
+        // Aplica las reglas del dominio (minúsculas, caracteres permitidos) antes de buscar duplicados
+        var nombreUsuario = Usuario.NormalizarNombreUsuario(command.NombreUsuario.Trim());
+        if (await repositorio.NombreUsuarioExisteAsync(nombreUsuario, ct))
+            return Error.Conflict("usuario.nombre_usuario_duplicado", $"Ya existe el usuario '{nombreUsuario}'.");
+
+        var email = string.IsNullOrWhiteSpace(command.Email) ? null : command.Email.Trim().ToLowerInvariant();
+        if (email is not null && await repositorio.EmailExisteAsync(email, ct))
             return Error.Conflict("usuario.email_duplicado", $"Ya existe un usuario con el correo '{email}'.");
 
         var roles = await repositorio.ObtenerRolesAsync(ct);
@@ -49,7 +56,7 @@ internal sealed class CrearUsuarioHandler(
             asignados.Add(rol);
         }
 
-        var usuario = Usuario.Crear(email, command.NombreCompleto, hasheador.Hashear(command.Password));
+        var usuario = Usuario.Crear(nombreUsuario, command.NombreCompleto, hasheador.Hashear(command.Password), email);
         foreach (var rol in asignados)
             usuario.AsignarRol(rol.Id);
 

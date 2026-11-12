@@ -22,9 +22,11 @@ internal sealed class GeneradorDeTokensJwt(JwtOptions opciones, TimeProvider rel
         {
             new("sub", usuario.Id.ToString()),
             new("tenant_id", usuario.TenantId.ToString()),
-            new("email", usuario.Email),
+            new("preferred_username", usuario.NombreUsuario),
             new("name", usuario.NombreCompleto)
         };
+        if (usuario.Email is not null)
+            claims.Add(new Claim("email", usuario.Email));
         claims.AddRange(permisos.Select(p => new Claim("permiso", p)));
 
         var descriptor = new SecurityTokenDescriptor

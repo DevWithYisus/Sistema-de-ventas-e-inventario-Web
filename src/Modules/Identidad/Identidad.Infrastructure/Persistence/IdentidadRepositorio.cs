@@ -16,8 +16,11 @@ internal sealed class IdentidadRepositorio(IdentidadDbContext db) : IIdentidadRe
     public Task<bool> NegocioCodigoExisteAsync(string codigo, CancellationToken ct)
         => db.Negocios.AnyAsync(n => n.Codigo == codigo, ct);
 
-    public Task<Usuario?> ObtenerUsuarioPorEmailAsync(string email, CancellationToken ct)
-        => db.Usuarios.FirstOrDefaultAsync(u => u.Email == email, ct);
+    public Task<Usuario?> ObtenerUsuarioPorNombreUsuarioAsync(string nombreUsuario, CancellationToken ct)
+        => db.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuario == nombreUsuario, ct);
+
+    public Task<bool> NombreUsuarioExisteAsync(string nombreUsuario, CancellationToken ct)
+        => db.Usuarios.AnyAsync(u => u.NombreUsuario == nombreUsuario, ct);
 
     public Task<bool> EmailExisteAsync(string email, CancellationToken ct)
         => db.Usuarios.AnyAsync(u => u.Email == email, ct);

@@ -33,7 +33,8 @@ internal sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
     public void Configure(EntityTypeBuilder<Usuario> b)
     {
         b.ToTable("usuarios");
-        b.Property(x => x.Email).HasMaxLength(256).IsRequired();
+        b.Property(x => x.NombreUsuario).HasMaxLength(Usuario.LongitudMaximaNombreUsuario).IsRequired();
+        b.Property(x => x.Email).HasMaxLength(256);
         b.Property(x => x.NombreCompleto).HasMaxLength(150).IsRequired();
         b.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
 
@@ -42,7 +43,8 @@ internal sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         b.HasMany(x => x.Roles).WithOne().HasForeignKey(r => r.UsuarioId).OnDelete(DeleteBehavior.Restrict);
         b.Navigation(x => x.Roles).UsePropertyAccessMode(PropertyAccessMode.Field);
 
-        // Un mismo correo puede existir en negocios distintos, pero no repetido dentro de uno
+        // Un mismo usuario o correo puede existir en negocios distintos, pero no repetido dentro de uno
+        b.HasIndex(x => new { x.TenantId, x.NombreUsuario }).IsUnique().HasFilter("eliminado_en IS NULL");
         b.HasIndex(x => new { x.TenantId, x.Email }).IsUnique().HasFilter("eliminado_en IS NULL");
     }
 }
