@@ -85,6 +85,10 @@ export interface ResumenDashboard {
   ventasDelMesPorMetodoDePago: VentasPorMetodo[];
   ultimasVentas: VentaResumen[];
   inventario: ResumenDeInventario;
+  obsequiosDelMes: number;
+  cartera: { totalPorCobrar: number; clientesConDeuda: number };
+  gastosDelMes: number;
+  utilidadNetaDelMes: number;
 }
 
 // ---------- Punto de venta ----------
@@ -341,4 +345,35 @@ export interface AbonoDetalle {
 export interface ResumenCartera {
   totalPorCobrar: number;
   clientesConDeuda: number;
+}
+
+// ---------- Gastos ----------
+
+export interface CategoriaGasto {
+  id: string;
+  nombre: string;
+  activo: boolean;
+}
+
+export interface Gasto {
+  id: string;
+  numero: string;
+  fecha: string;
+  categoriaId: string;
+  categoria: string;
+  descripcion: string;
+  monto: number;
+  metodo: MetodoPago;
+  referencia: string | null;
+  proveedor: string | null;
+  registradoPor: string | null;
+  estado: "Activo" | "Anulado";
+  motivoAnulacion: string | null;
+  creadoEn: string;
+}
+
+/** GET /api/gastos */
+export interface ListadoGastos {
+  total: number;
+  gastos: Pagina<Gasto>;
 }

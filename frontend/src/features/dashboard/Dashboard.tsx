@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { CalendarDays, CircleDollarSign, Receipt, RefreshCw, TrendingUp } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import { Link } from "react-router";
+import { CalendarDays, ChevronRight, CircleDollarSign, HandCoins, PiggyBank, Receipt, RefreshCw, TrendingDown, TrendingUp } from "lucide-react";
 import { useAuth } from "../../auth/AuthContext";
 import { mensajeDeError } from "../../api/cliente";
 import type { ResumenDashboard } from "../../api/tipos";
@@ -110,6 +111,38 @@ function Contenido({ datos, dias, alCambiarDias, actualizando }: ContenidoProps)
         />
       </div>
 
+      {/* Resultado del mes: utilidad neta, gastos y cartera */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <Finanza
+          titulo="Utilidad neta del mes"
+          valor={datos.utilidadNetaDelMes}
+          detalle={`Utilidad de ventas ${formatearPesos(mesActual.utilidad)} − gastos ${formatearPesos(datos.gastosDelMes)}`}
+          icono={<PiggyBank className="size-5" aria-hidden />}
+          tono={datos.utilidadNetaDelMes >= 0 ? "verde" : "rojo"}
+          destacado
+        />
+        <Finanza
+          titulo="Gastos del mes"
+          valor={datos.gastosDelMes}
+          detalle={
+            datos.obsequiosDelMes > 0
+              ? `Además, ${formatearPesos(datos.obsequiosDelMes)} en obsequios (ya restados en la utilidad)`
+              : "Arriendo, servicios, nómina y demás"
+          }
+          icono={<TrendingDown className="size-5" aria-hidden />}
+          tono="rojo"
+          enlace="/gastos"
+        />
+        <Finanza
+          titulo="Cartera por cobrar"
+          valor={datos.cartera.totalPorCobrar}
+          detalle={`${datos.cartera.clientesConDeuda} ${datos.cartera.clientesConDeuda === 1 ? "cliente debe" : "clientes deben"}`}
+          icono={<HandCoins className="size-5" aria-hidden />}
+          tono="ambar"
+          enlace="/clientes"
+        />
+      </div>
+
       {/* Gráfico + inventario */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
         <Tarjeta
@@ -142,6 +175,62 @@ function Contenido({ datos, dias, alCambiarDias, actualizando }: ContenidoProps)
         <UltimasVentas ventas={datos.ultimasVentas} />
       </Tarjeta>
     </>
+  );
+}
+
+function Finanza({
+  titulo,
+  valor,
+  detalle,
+  icono,
+  tono,
+  enlace,
+  destacado = false,
+}: {
+  titulo: string;
+  valor: number;
+  detalle: string;
+  icono: ReactNode;
+  tono: "verde" | "rojo" | "ambar";
+  enlace?: string;
+  destacado?: boolean;
+}) {
+  const colorIcono = {
+    verde: destacado ? "bg-white/10 text-bosque-100" : "bg-bosque-50 text-bosque-700",
+    rojo: destacado ? "bg-white/10 text-red-200" : "bg-red-50 text-red-700",
+    ambar: "bg-ambar-100 text-ambar-700",
+  }[tono];
+
+  const contenido = (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <p className={`text-sm font-semibold ${destacado ? "text-bosque-100" : "text-stone-600"}`}>{titulo}</p>
+        <span className={`rounded-xl p-2 ${colorIcono}`}>{icono}</span>
+      </div>
+      <p
+        className={`mt-2 text-2xl font-extrabold tracking-tight tabular-nums sm:text-[1.7rem] ${
+          destacado ? (valor < 0 ? "text-red-200" : "text-white") : "text-stone-900"
+        }`}
+      >
+        {formatearPesos(valor)}
+      </p>
+      <p className={`mt-1.5 flex items-center gap-1 text-sm ${destacado ? "text-bosque-200" : "text-stone-500"}`}>
+        <span className="flex-1">{detalle}</span>
+        {enlace && <ChevronRight className="size-4 shrink-0" aria-hidden />}
+      </p>
+    </>
+  );
+
+  const clases = `block rounded-2xl p-5 shadow-sm ring-1 ${
+    destacado ? "bg-bosque-900 ring-bosque-900" : "bg-white ring-stone-200/70"
+  } ${enlace ? "transition-shadow hover:shadow-md hover:ring-bosque-300" : ""}`;
+
+  return enlace ? (
+    <Link to={enlace} className={clases}>
+      {contenido}
+    </Link>
+  ) : (
+    <div className={clases}>{contenido}</div>
   );
 }
 
@@ -183,6 +272,11 @@ function EsqueletoDashboard() {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {Array.from({ length: 4 }, (_, i) => (
           <Esqueleto key={i} className="h-36 rounded-2xl" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <Esqueleto key={i} className="h-32 rounded-2xl" />
         ))}
       </div>
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">

@@ -78,3 +78,26 @@ export const formatearHora = (instante: string) => hora.format(new Date(instante
 
 /** "12/11/2026, 9:15 p. m." (para la tirilla) */
 export const formatearFechaHoraLarga = (instante: string) => fechaHoraLarga.format(new Date(instante));
+
+// ---------- Fechas del calendario (DateOnly "aaaa-mm-dd") en la hora de Colombia ----------
+
+const isoLocal = new Intl.DateTimeFormat("en-CA", {
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  timeZone: config.zonaHoraria,
+});
+
+/** Hoy en Colombia como "aaaa-mm-dd" (aunque el equipo tenga otra zona horaria). */
+export const hoyLocal = () => isoLocal.format(new Date());
+
+const dosDigitos = (n: number) => String(n).padStart(2, "0");
+
+/** Primer y último día del mes de una fecha "aaaa-mm-dd" (desplazado `meses` hacia atrás o adelante). */
+export function rangoDelMes(fecha: string, meses = 0): { desde: string; hasta: string } {
+  const [anio, mes] = fecha.split("-").map(Number);
+  const inicio = new Date(anio, mes - 1 + meses, 1);
+  const fin = new Date(inicio.getFullYear(), inicio.getMonth() + 1, 0);
+  const iso = (d: Date) => `${d.getFullYear()}-${dosDigitos(d.getMonth() + 1)}-${dosDigitos(d.getDate())}`;
+  return { desde: iso(inicio), hasta: iso(fin) };
+}
