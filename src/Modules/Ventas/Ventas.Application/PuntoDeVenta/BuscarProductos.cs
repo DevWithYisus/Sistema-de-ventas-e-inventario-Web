@@ -9,7 +9,8 @@ namespace Ventas.Application.PuntoDeVenta;
 /// Búsqueda del punto de venta: por código de barras (lector), SKU o nombre, con el stock disponible.
 /// </summary>
 /// <param name="SoloObsequios">Para el selector de obsequios: solo productos de categorías de obsequios.</param>
-public sealed record BuscarProductosParaVentaQuery(string Texto, bool SoloObsequios = false, int Maximo = 20)
+/// <param name="AlmacenId">Almacén desde el que se vende: el stock mostrado es el de ese almacén.</param>
+public sealed record BuscarProductosParaVentaQuery(string Texto, bool SoloObsequios = false, int Maximo = 20, Guid? AlmacenId = null)
     : IQuery<IReadOnlyList<ProductoVentaDto>>;
 
 internal sealed class BuscarProductosParaVentaHandler(ICatalogoApi catalogo, IInventarioApi inventario)
@@ -23,7 +24,7 @@ internal sealed class BuscarProductosParaVentaHandler(ICatalogoApi catalogo, IIn
         var productos = await catalogo.BuscarParaVentaAsync(query.Texto, query.SoloObsequios, query.Maximo, ct);
 
         var conInventario = productos.Where(p => p.ManejaInventario).Select(p => p.VarianteId).ToList();
-        var disponible = await inventario.ObtenerDisponibleAsync(conInventario, ct);
+        var disponible = await inventario.ObtenerDisponibleAsync(conInventario, query.AlmacenId, ct);
 
         IReadOnlyList<ProductoVentaDto> resultado = productos
             .Select(p => new ProductoVentaDto(

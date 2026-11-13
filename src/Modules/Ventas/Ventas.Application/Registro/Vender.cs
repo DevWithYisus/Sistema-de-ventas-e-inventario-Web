@@ -189,7 +189,7 @@ internal sealed class VenderHandler(
                         $"El crédito de {credito:N0} supera el cupo disponible de {clienteVenta.Nombre} " +
                         $"({clienteVenta.CupoDisponible:N0} de {clienteVenta.CupoCredito:N0}).");
 
-                if (puntosRedimidos > clienteVenta.SaldoPuntos)
+                if (puntosRedimidos > 0 && puntosRedimidos > clienteVenta.SaldoPuntos)
                     return Error.Validation("puntos.insuficientes",
                         $"{clienteVenta.Nombre} tiene {clienteVenta.SaldoPuntos:N0} puntos y se necesitan {puntosRedimidos:N0}.");
             }

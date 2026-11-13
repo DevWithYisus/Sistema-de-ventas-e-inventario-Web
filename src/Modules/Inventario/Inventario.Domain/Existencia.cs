@@ -71,8 +71,7 @@ public sealed class Existencia : TenantEntity
     internal decimal Salir(decimal cantidad, bool permiteStockNegativo, DateTimeOffset ahora)
     {
         if (!permiteStockNegativo && Disponible < cantidad)
-            throw new DomainException("inventario.stock_insuficiente",
-                $"Stock insuficiente: disponible {Disponible:0.####}, solicitado {cantidad:0.####}.");
+            throw new StockInsuficienteException(AlmacenId, VarianteId, Disponible, cantidad);
 
         var costo = CostoPromedio;
         Cantidad -= cantidad;
@@ -104,4 +103,18 @@ public sealed class Existencia : TenantEntity
         UltimaSecuencia++;
         ActualizadoEn = ahora;
     }
+}
+
+/// <summary>
+/// No alcanza el stock para una salida. Lleva los ids para que el caso de uso arme un mensaje
+/// con el nombre del producto y del almacén (el dominio no los conoce).
+/// </summary>
+public sealed class StockInsuficienteException(Guid almacenId, Guid varianteId, decimal disponible, decimal solicitado)
+    : DomainException("inventario.stock_insuficiente",
+        $"Stock insuficiente: disponible {disponible:0.####}, solicitado {solicitado:0.####}.")
+{
+    public Guid AlmacenId { get; } = almacenId;
+    public Guid VarianteId { get; } = varianteId;
+    public decimal Disponible { get; } = disponible;
+    public decimal Solicitado { get; } = solicitado;
 }

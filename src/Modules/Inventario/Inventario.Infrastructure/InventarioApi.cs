@@ -31,10 +31,10 @@ internal sealed class InventarioApi(
         => alertas.CalcularAsync(varianteIds, cancellationToken);
 
     public Task<IReadOnlyDictionary<Guid, decimal>> ObtenerDisponibleAsync(
-        IReadOnlyCollection<Guid> varianteIds, CancellationToken cancellationToken)
+        IReadOnlyCollection<Guid> varianteIds, Guid? almacenId, CancellationToken cancellationToken)
         => varianteIds.Count == 0
             ? Task.FromResult<IReadOnlyDictionary<Guid, decimal>>(new Dictionary<Guid, decimal>())
-            : stock.DisponiblePorVarianteAsync(varianteIds, cancellationToken);
+            : stock.DisponiblePorVarianteAsync(varianteIds, cancellationToken, almacenId);
 
     public async Task<ResumenDeInventario> ObtenerResumenAsync(
         DateOnly venceAntesDe, int maxAlertas, CancellationToken cancellationToken)

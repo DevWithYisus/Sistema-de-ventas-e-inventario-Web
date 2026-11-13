@@ -47,3 +47,24 @@
     @apply bg-crema-100 font-sans text-stone-800 antialiased;
   }
 }
+
+/* ---------- Impresión de la tirilla ----------
+   En pantalla la tirilla no se ve. Al imprimir se oculta toda la app (display: none, para que no
+   ocupe papel) y solo queda la tirilla, que se monta directamente en <body>. */
+#area-impresion {
+  display: none;
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  body > *:not(#area-impresion) {
+    display: none !important;
+  }
+
+  #area-impresion {
+    display: block;
+  }
+}

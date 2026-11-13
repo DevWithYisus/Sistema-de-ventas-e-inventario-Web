@@ -26,7 +26,8 @@ public sealed record VentaDto(
     string? MotivoAnulacion, DateTimeOffset? AnuladaEn,
     IReadOnlyList<VentaLineaDto> Lineas, IReadOnlyList<PagoDto> Pagos,
     Guid? ClienteId = null, int PuntosGanados = 0, int PuntosRedimidos = 0,
-    int? ClienteSaldoPuntos = null, decimal? ClienteSaldoDeuda = null);
+    int? ClienteSaldoPuntos = null, decimal? ClienteSaldoDeuda = null,
+    string? VendedorNombre = null);
 
 public sealed record VentaResumenDto(
     Guid Id, string Numero, EstadoVenta Estado, DateTimeOffset Fecha,

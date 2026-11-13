@@ -1,6 +1,7 @@
-import { ArrowLeftRight, Banknote, CircleEllipsis, CreditCard, type LucideIcon } from "lucide-react";
-import type { MetodoPago, ProductoMasVendido, VentasPorMetodo } from "../../api/tipos";
+import { CircleEllipsis } from "lucide-react";
+import type { ProductoMasVendido, VentasPorMetodo } from "../../api/tipos";
 import { formatearNumero, formatearPesos, formatearPorcentaje } from "../../utils/formato";
+import { etiquetaMetodo, iconoMetodo } from "../../utils/metodosPago";
 
 /** Barra de magnitud: un solo color, el largo es lo que comunica. */
 function Barra({ proporcion }: { proporcion: number }) {
@@ -44,13 +45,6 @@ export function TopProductos({ productos }: { productos: ProductoMasVendido[] })
   );
 }
 
-const iconosPago: Record<MetodoPago, LucideIcon> = {
-  Efectivo: Banknote,
-  Tarjeta: CreditCard,
-  Transferencia: ArrowLeftRight,
-  Otro: CircleEllipsis,
-};
-
 export function MetodosDePago({ metodos }: { metodos: VentasPorMetodo[] }) {
   if (metodos.length === 0) return <SinDatos texto="Aún no hay pagos este mes." />;
 
@@ -58,7 +52,7 @@ export function MetodosDePago({ metodos }: { metodos: VentasPorMetodo[] }) {
   return (
     <ul className="space-y-4">
       {metodos.map((m) => {
-        const Icono = iconosPago[m.metodo] ?? CircleEllipsis;
+        const Icono = iconoMetodo[m.metodo] ?? CircleEllipsis;
         const proporcion = total > 0 ? m.monto / total : 0;
         return (
           <li key={m.metodo} className="flex gap-3">
@@ -67,7 +61,7 @@ export function MetodosDePago({ metodos }: { metodos: VentasPorMetodo[] }) {
             </span>
             <div className="min-w-0 flex-1">
               <div className="flex items-baseline justify-between gap-3">
-                <p className="text-sm font-bold text-stone-800">{m.metodo}</p>
+                <p className="text-sm font-bold text-stone-800">{etiquetaMetodo[m.metodo] ?? m.metodo}</p>
                 <p className="text-sm font-bold text-stone-900 tabular-nums">{formatearPesos(m.monto)}</p>
               </div>
               <p className="mb-1.5 text-xs text-stone-500 tabular-nums">

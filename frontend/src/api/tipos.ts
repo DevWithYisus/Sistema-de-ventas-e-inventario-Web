@@ -1,7 +1,7 @@
 // Tipos de las respuestas de la API. Reflejan los DTO del backend (JSON en camelCase,
 // enums como texto, decimal como number, DateOnly como "aaaa-mm-dd", DateTimeOffset como ISO).
 
-export type MetodoPago = "Efectivo" | "Tarjeta" | "Transferencia" | "Otro";
+export type MetodoPago = "Efectivo" | "Tarjeta" | "Transferencia" | "Otro" | "Credito" | "Puntos";
 export type EstadoVenta = "Borrador" | "Completada" | "Anulada";
 export type NivelAlerta = "Bajo" | "Agotado";
 
@@ -85,4 +85,188 @@ export interface ResumenDashboard {
   ventasDelMesPorMetodoDePago: VentasPorMetodo[];
   ultimasVentas: VentaResumen[];
   inventario: ResumenDeInventario;
+}
+
+// ---------- Punto de venta ----------
+
+export interface AlmacenDto {
+  id: string;
+  codigo: string;
+  nombre: string;
+  direccion: string | null;
+  esPrincipal: boolean;
+  activo: boolean;
+}
+
+/** GET /api/ventas/productos */
+export interface ProductoVenta {
+  varianteId: string;
+  sku: string;
+  nombre: string;
+  codigoBarras: string | null;
+  precio: number;
+  manejaInventario: boolean;
+  manejaLotes: boolean;
+  esObsequiable: boolean;
+  /** Unidades que suma un escaneo (1, o el factor si es el código de una caja/bulto). */
+  cantidadPorEscaneo: number;
+  coincidenciaExacta: boolean;
+  /** null si el producto no maneja inventario. */
+  disponible: number | null;
+}
+
+export interface ClienteResumen {
+  id: string;
+  nombre: string;
+  documento: string | null;
+  telefono: string | null;
+  esGeneral: boolean;
+  activo: boolean;
+  cupoCredito: number;
+  saldoDeuda: number;
+  saldoPuntos: number;
+}
+
+export interface ConfiguracionVentas {
+  puntosActivo: boolean;
+  montoBasePuntos: number;
+  puntosPorMontoBase: number;
+  valorPunto: number;
+  nombreComercial: string;
+  nit: string | null;
+  direccion: string | null;
+  telefono: string | null;
+  mensajePie: string | null;
+  anchoTirillaMm: 58 | 80;
+}
+
+export interface LineaVentaRequest {
+  varianteId: string;
+  cantidad: number;
+  precioUnitario?: number;
+  esObsequio?: boolean;
+}
+
+export interface PagoVentaRequest {
+  metodo: MetodoPago;
+  monto: number;
+  referencia?: string;
+  recibido?: number;
+}
+
+export interface VenderRequest {
+  almacenId: string;
+  clienteId?: string;
+  lineas: LineaVentaRequest[];
+  pagos: PagoVentaRequest[];
+  observacion?: string;
+}
+
+export interface VentaRegistrada {
+  id: string;
+  numero: string;
+  total: number;
+  alertas: AlertaDeStock[];
+  cambio: number;
+  puntosGanados: number;
+  puntosRedimidos: number;
+}
+
+export interface VentaLinea {
+  varianteId: string;
+  sku: string;
+  descripcion: string;
+  cantidad: number;
+  precioUnitario: number;
+  descuentoPorcentaje: number;
+  impuestoPorcentaje: number;
+  subtotal: number;
+  descuento: number;
+  impuesto: number;
+  total: number;
+  esObsequio: boolean;
+}
+
+export interface VentaPago {
+  metodo: MetodoPago;
+  monto: number;
+  referencia: string | null;
+  recibido: number | null;
+  cambio: number;
+}
+
+/** GET /api/ventas/{id} */
+export interface VentaDetalle {
+  id: string;
+  numero: string;
+  estado: EstadoVenta;
+  fecha: string;
+  almacenId: string;
+  clienteNombre: string | null;
+  clienteDocumento: string | null;
+  observacion: string | null;
+  subtotal: number;
+  descuento: number;
+  impuesto: number;
+  total: number;
+  motivoAnulacion: string | null;
+  anuladaEn: string | null;
+  lineas: VentaLinea[];
+  pagos: VentaPago[];
+  clienteId: string | null;
+  puntosGanados: number;
+  puntosRedimidos: number;
+  clienteSaldoPuntos: number | null;
+  clienteSaldoDeuda: number | null;
+  vendedorNombre: string | null;
+}
+
+// ---------- Caja ----------
+
+export type EstadoCaja = "Abierta" | "Cerrada";
+export type TipoMovimientoCaja =
+  | "Venta"
+  | "AnulacionVenta"
+  | "Abono"
+  | "AnulacionAbono"
+  | "Gasto"
+  | "AnulacionGasto"
+  | "Ingreso"
+  | "Retiro";
+
+export interface TotalPorMetodo {
+  metodo: MetodoPago;
+  cantidad: number;
+  monto: number;
+}
+
+export interface ResumenCaja {
+  id: string;
+  numero: string;
+  estado: EstadoCaja;
+  abiertaEn: string;
+  abiertaPor: string | null;
+  observacionApertura: string | null;
+  montoInicial: number;
+  ventasEfectivo: number;
+  abonosEfectivo: number;
+  gastosEfectivo: number;
+  ingresos: number;
+  retiros: number;
+  ajustesPorAnulaciones: number;
+  efectivoEsperado: number;
+  cantidadVentas: number;
+  ventasPorMetodo: TotalPorMetodo[];
+  abonosPorMetodo: TotalPorMetodo[];
+  cerradaEn: string | null;
+  cerradaPor: string | null;
+  efectivoContado: number | null;
+  diferencia: number | null;
+  observacionCierre: string | null;
+}
+
+/** GET /api/caja/actual */
+export interface EstadoCajaDto {
+  abierta: boolean;
+  resumen: ResumenCaja | null;
 }

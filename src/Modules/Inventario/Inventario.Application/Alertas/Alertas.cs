@@ -9,9 +9,9 @@ namespace Inventario.Application.Alertas;
 /// <summary>Lectura de existencias para las alertas (la implementa la capa de infraestructura).</summary>
 public interface IAlertasStockConsultas
 {
-    /// <summary>Stock disponible (existencia menos reservado) sumado en todos los almacenes.</summary>
+    /// <summary>Stock disponible (existencia menos reservado), de un almacén o sumado en todos.</summary>
     Task<IReadOnlyDictionary<Guid, decimal>> DisponiblePorVarianteAsync(
-        IReadOnlyCollection<Guid> varianteIds, CancellationToken ct);
+        IReadOnlyCollection<Guid> varianteIds, CancellationToken ct, Guid? almacenId = null);
 }
 
 /// <summary>

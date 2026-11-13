@@ -46,13 +46,15 @@ public static class VentasEndpoints
             .RequireAuthorization(Permisos.VentasLeer);
 
         // ---------- Punto de venta ----------
-        // Búsqueda por código de barras (lector), SKU o nombre. ?buscar=7701234&obsequios=false
+        // Búsqueda por código de barras (lector), SKU o nombre. ?buscar=7701234&obsequios=false&almacenId=...
         grupo.MapGet("/productos", async (
                 string? buscar,
                 bool? obsequios,
+                Guid? almacenId,
                 IQueryHandler<BuscarProductosParaVentaQuery, IReadOnlyList<ProductoVentaDto>> handler,
                 CancellationToken ct) =>
-                (await handler.HandleAsync(new BuscarProductosParaVentaQuery(buscar ?? "", obsequios ?? false), ct)).ToHttp())
+                (await handler.HandleAsync(
+                    new BuscarProductosParaVentaQuery(buscar ?? "", obsequios ?? false, AlmacenId: almacenId), ct)).ToHttp())
             .RequireAuthorization(Permisos.VentasVender);
 
         // El punto de venta la necesita (puntos y tirilla); solo el administrador la cambia

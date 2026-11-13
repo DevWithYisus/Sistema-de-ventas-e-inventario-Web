@@ -6,6 +6,8 @@ import { Login } from "./paginas/Login";
 import { NoEncontrada } from "./paginas/NoEncontrada";
 import { Proximamente } from "./paginas/Proximamente";
 import { Dashboard } from "./features/dashboard/Dashboard";
+import { PaginaCaja } from "./features/caja/PaginaCaja";
+import { PuntoDeVenta } from "./features/pos/PuntoDeVenta";
 import { Permisos } from "./auth/permisos";
 
 export function App() {
@@ -27,6 +29,24 @@ export function App() {
           element={
             <RequierePermiso permiso={Permisos.ReportesVer}>
               <Dashboard />
+            </RequierePermiso>
+          }
+        />
+
+        <Route
+          path="punto-de-venta"
+          element={
+            <RequierePermiso permiso={Permisos.VentasVender}>
+              <PuntoDeVenta />
+            </RequierePermiso>
+          }
+        />
+
+        <Route
+          path="caja"
+          element={
+            <RequierePermiso permiso={Permisos.CajaOperar}>
+              <PaginaCaja />
             </RequierePermiso>
           }
         />

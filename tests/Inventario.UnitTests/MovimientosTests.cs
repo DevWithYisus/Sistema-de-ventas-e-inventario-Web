@@ -123,7 +123,7 @@ public class MovimientosTests
         var libro = LibroVacio();
         Entrar(libro, Bodega, 3, 100);
 
-        var error = Assert.Throws<DomainException>(() => Sacar(libro, Bodega, 5));
+        var error = Assert.Throws<StockInsuficienteException>(() => Sacar(libro, Bodega, 5));
 
         Assert.Equal("inventario.stock_insuficiente", error.Code);
     }
@@ -163,7 +163,7 @@ public class MovimientosTests
         existencia.Reservar(4);
 
         Assert.Equal(6m, existencia.Disponible);
-        var error = Assert.Throws<DomainException>(() => Sacar(libro, Bodega, 7));
+        var error = Assert.Throws<StockInsuficienteException>(() => Sacar(libro, Bodega, 7));
         Assert.Equal("inventario.stock_insuficiente", error.Code);
     }
 

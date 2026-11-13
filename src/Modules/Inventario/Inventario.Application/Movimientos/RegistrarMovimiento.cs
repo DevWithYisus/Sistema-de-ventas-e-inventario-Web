@@ -199,6 +199,13 @@ internal sealed class RegistrarMovimientoHandler(
                 varianteId => variantes[varianteId].PermiteStockNegativo ?? PermitirStockNegativoPorDefecto,
                 ahora);
         }
+        catch (StockInsuficienteException ex)
+        {
+            var producto = variantes.TryGetValue(ex.VarianteId, out var info) ? info.Nombre : "el producto";
+            var almacen = almacenes.FirstOrDefault(a => a.Id == ex.AlmacenId)?.Nombre ?? "el almacén";
+            return Error.Conflict(ex.Code,
+                $"No hay suficiente \"{producto}\" en {almacen}: hay {ex.Disponible:0.##} y se necesitan {ex.Solicitado:0.##}.");
+        }
         catch (DomainException ex) when (ex.Code == "inventario.stock_insuficiente")
         {
             return Error.Conflict(ex.Code, ex.Message);

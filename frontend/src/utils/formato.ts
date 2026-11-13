@@ -62,3 +62,19 @@ export const formatearFechaHora = (instante: string) => fechaHora.format(new Dat
 
 /** Primer nombre para el saludo. */
 export const primerNombre = (nombreCompleto: string) => nombreCompleto.trim().split(/\s+/)[0] ?? "";
+
+const hora = new Intl.DateTimeFormat("es-CO", { hour: "numeric", minute: "2-digit", timeZone: config.zonaHoraria });
+const fechaHoraLarga = new Intl.DateTimeFormat("es-CO", {
+  day: "2-digit",
+  month: "2-digit",
+  year: "numeric",
+  hour: "numeric",
+  minute: "2-digit",
+  timeZone: config.zonaHoraria,
+});
+
+/** "9:15 p. m." en la hora de Colombia */
+export const formatearHora = (instante: string) => hora.format(new Date(instante));
+
+/** "12/11/2026, 9:15 p. m." (para la tirilla) */
+export const formatearFechaHoraLarga = (instante: string) => fechaHoraLarga.format(new Date(instante));

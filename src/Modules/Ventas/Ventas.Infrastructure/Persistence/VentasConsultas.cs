@@ -35,7 +35,8 @@ internal sealed class VentasConsultas(VentasDbContext db) : IVentasConsultas
                 v.PuntosGanados,
                 v.PuntosRedimidos,
                 db.Clientes.Where(c => c.Id == v.ClienteId && !c.EsGeneral).Select(c => (int?)c.SaldoPuntos).FirstOrDefault(),
-                db.Clientes.Where(c => c.Id == v.ClienteId && !c.EsGeneral).Select(c => (decimal?)c.SaldoDeuda).FirstOrDefault()))
+                db.Clientes.Where(c => c.Id == v.ClienteId && !c.EsGeneral).Select(c => (decimal?)c.SaldoDeuda).FirstOrDefault(),
+                v.VendedorNombre))
             .FirstOrDefaultAsync(ct);
 
     public async Task<PaginaDto<VentaResumenDto>> ListarVentasAsync(
