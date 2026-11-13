@@ -13,6 +13,12 @@ public interface ICatalogoRepositorio
     void Agregar(UnidadMedida unidad);
     void Agregar(Categoria categoria);
 
+    /// <summary>El producto con sus variantes, para editarlo.</summary>
+    Task<Producto?> ObtenerProductoAsync(Guid id, CancellationToken ct);
+
+    /// <summary>¿Otro producto (variante o presentación) ya usa este código de barras?</summary>
+    Task<bool> CodigoBarrasEnUsoAsync(string codigoBarras, Guid? excluirVarianteId, CancellationToken ct);
+
     Task<bool> SkuExisteAsync(string sku, CancellationToken ct);
     Task<bool> UnidadExisteAsync(Guid unidadId, CancellationToken ct);
     Task<bool> UnidadCodigoExisteAsync(string codigo, CancellationToken ct);
@@ -26,7 +32,8 @@ public interface ICatalogoRepositorio
 public interface ICatalogoConsultas
 {
     Task<ProductoDetalleDto?> ObtenerProductoAsync(Guid id, CancellationToken ct);
-    Task<PaginaDto<ProductoResumenDto>> ListarProductosAsync(string? busqueda, int pagina, int tamanoPagina, CancellationToken ct);
+    Task<PaginaDto<ProductoResumenDto>> ListarProductosAsync(
+        string? busqueda, Guid? categoriaId, bool incluirInactivos, int pagina, int tamanoPagina, CancellationToken ct);
     Task<IReadOnlyList<UnidadMedidaDto>> ListarUnidadesAsync(CancellationToken ct);
     Task<IReadOnlyList<CategoriaDto>> ListarCategoriasAsync(CancellationToken ct);
 }

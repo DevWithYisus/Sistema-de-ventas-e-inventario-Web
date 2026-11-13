@@ -25,31 +25,36 @@ internal sealed class CatalogoConsultas(CatalogoDbContext db) : ICatalogoConsult
             .FirstOrDefaultAsync(ct);
 
     public async Task<PaginaDto<ProductoResumenDto>> ListarProductosAsync(
-        string? busqueda, int pagina, int tamanoPagina, CancellationToken ct)
+        string? busqueda, Guid? categoriaId, bool incluirInactivos, int pagina, int tamanoPagina, CancellationToken ct)
     {
         var consulta = db.Productos.AsNoTracking();
 
+        if (!incluirInactivos) consulta = consulta.Where(p => p.Activo);
+        if (categoriaId is { } categoria) consulta = consulta.Where(p => p.CategoriaId == categoria);
+
         if (!string.IsNullOrWhiteSpace(busqueda))
         {
-            var patron = $"%{Escapar(busqueda.Trim())}%";
+            var texto = busqueda.Trim();
+            var patron = $"%{Escapar(texto)}%";
             consulta = consulta.Where(p =>
                 EF.Functions.ILike(p.Nombre, patron) ||
-                p.Variantes.Any(v => EF.Functions.ILike(v.Sku, patron)));
+                p.Variantes.Any(v => EF.Functions.ILike(v.Sku, patron) || v.CodigoBarras == texto));
         }
 
         var total = await consulta.CountAsync(ct);
 
-        var items = await consulta
-            .OrderBy(p => p.Nombre).ThenBy(p => p.Id)
+        var items = await (
+                from p in consulta
+                from v in p.Variantes.Where(v => v.EsDefault)
+                orderby p.Nombre, p.Id
+                select new ProductoResumenDto(
+                    p.Id, p.Nombre, v.Sku, p.Tipo, v.PrecioBase, p.Activo,
+                    v.Id, v.CodigoBarras, v.CostoEstandar, v.StockMinimo,
+                    p.CategoriaId,
+                    db.Categorias.Where(c => c.Id == p.CategoriaId).Select(c => c.Nombre).FirstOrDefault(),
+                    p.UnidadBaseId, p.ManejaInventario, p.ManejaLotes, p.Descripcion))
             .Skip((pagina - 1) * tamanoPagina)
             .Take(tamanoPagina)
-            .Select(p => new ProductoResumenDto(
-                p.Id,
-                p.Nombre,
-                p.Variantes.Where(v => v.EsDefault).Select(v => v.Sku).FirstOrDefault() ?? "",
-                p.Tipo,
-                p.Variantes.Where(v => v.EsDefault).Select(v => v.PrecioBase).FirstOrDefault(),
-                p.Activo))
             .ToListAsync(ct);
 
         return new PaginaDto<ProductoResumenDto>(items, pagina, tamanoPagina, total);

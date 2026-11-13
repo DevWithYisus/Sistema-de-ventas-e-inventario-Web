@@ -3,6 +3,7 @@ using Core.Application.Common;
 using Core.Application.Messaging;
 using Core.Application.Results;
 using Inventario.Application.Abstracciones;
+using Inventario.Application.Alertas;
 
 namespace Inventario.Application.Movimientos;
 
@@ -69,5 +70,23 @@ internal sealed class ConsultarKardexHandler(IInventarioConsultas consultas)
 
         return await consultas.ConsultarKardexAsync(
             query.VarianteId, query.AlmacenId, query.Desde, query.Hasta, pagina, tamano, ct);
+    }
+}
+
+// ---------- Disponible de varias variantes (para listados) ----------
+/// <param name="AlmacenId">Si es null, suma todos los almacenes.</param>
+public sealed record ConsultarDisponibleQuery(IReadOnlyList<Guid> VarianteIds, Guid? AlmacenId)
+    : IQuery<IReadOnlyDictionary<Guid, decimal>>;
+
+internal sealed class ConsultarDisponibleHandler(IAlertasStockConsultas stock)
+    : IQueryHandler<ConsultarDisponibleQuery, IReadOnlyDictionary<Guid, decimal>>
+{
+    public async Task<Result<IReadOnlyDictionary<Guid, decimal>>> HandleAsync(ConsultarDisponibleQuery query, CancellationToken ct)
+    {
+        var ids = query.VarianteIds.Distinct().Take(200).ToList();
+        if (ids.Count == 0)
+            return Result.Success<IReadOnlyDictionary<Guid, decimal>>(new Dictionary<Guid, decimal>());
+
+        return Result.Success(await stock.DisponiblePorVarianteAsync(ids, ct, query.AlmacenId));
     }
 }

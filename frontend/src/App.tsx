@@ -12,6 +12,8 @@ import { ListaClientes } from "./features/clientes/ListaClientes";
 import { FichaCliente } from "./features/clientes/FichaCliente";
 import { PaginaGastos } from "./features/gastos/PaginaGastos";
 import { PaginaConfiguracion } from "./features/configuracion/PaginaConfiguracion";
+import { PaginaProductos } from "./features/productos/PaginaProductos";
+import { PaginaInventario } from "./features/inventario/PaginaInventario";
 import { Permisos } from "./auth/permisos";
 
 export function App() {
@@ -85,6 +87,23 @@ export function App() {
           element={
             <RequierePermiso permiso={Permisos.ConfiguracionAdministrar}>
               <PaginaConfiguracion />
+            </RequierePermiso>
+          }
+        />
+
+        <Route
+          path="productos"
+          element={
+            <RequierePermiso permiso={Permisos.CatalogoLeer}>
+              <PaginaProductos />
+            </RequierePermiso>
+          }
+        />
+        <Route
+          path="inventario"
+          element={
+            <RequierePermiso permiso={Permisos.InventarioLeer}>
+              <PaginaInventario />
             </RequierePermiso>
           }
         />

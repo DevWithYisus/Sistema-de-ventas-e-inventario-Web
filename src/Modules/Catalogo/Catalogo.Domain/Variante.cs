@@ -68,6 +68,9 @@ public sealed class Variante : AuditableEntity
         return presentacion;
     }
 
+    public void CambiarCodigoBarras(string? codigoBarras)
+        => CodigoBarras = Guard.Opcional(codigoBarras, nameof(codigoBarras), 60);
+
     public void Desactivar() => Activo = false;
     public void Activar() => Activo = true;
 }

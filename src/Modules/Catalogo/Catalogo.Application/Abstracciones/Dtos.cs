@@ -17,5 +17,8 @@ public sealed record ProductoDetalleDto(
     bool ManejaInventario, bool ManejaLotes, bool ManejaVencimiento, bool ManejaSeriales,
     bool Activo, IReadOnlyList<VarianteDto> Variantes);
 
+/// <param name="VarianteId">Variante por defecto: la que se vende y se guarda en inventario.</param>
 public sealed record ProductoResumenDto(
-    Guid Id, string Nombre, string Sku, TipoProducto Tipo, decimal PrecioBase, bool Activo);
+    Guid Id, string Nombre, string Sku, TipoProducto Tipo, decimal PrecioBase, bool Activo,
+    Guid VarianteId, string? CodigoBarras, decimal CostoEstandar, decimal StockMinimo,
+    Guid? CategoriaId, string? Categoria, Guid UnidadBaseId, bool ManejaInventario, bool ManejaLotes, string? Descripcion);

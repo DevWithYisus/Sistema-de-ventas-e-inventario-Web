@@ -65,6 +65,22 @@ public static class InventarioEndpoints
                 .ToHttp())
             .RequireAuthorization(Permisos.InventarioLeer);
 
+        // Disponible de varias variantes a la vez: ?varianteIds=id1,id2&almacenId=...
+        grupo.MapGet("/disponible", async (
+                string? varianteIds,
+                Guid? almacenId,
+                IQueryHandler<ConsultarDisponibleQuery, IReadOnlyDictionary<Guid, decimal>> handler,
+                CancellationToken ct) =>
+            {
+                var ids = (varianteIds ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Select(t => Guid.TryParse(t, out var g) ? g : Guid.Empty)
+                    .Where(g => g != Guid.Empty)
+                    .ToList();
+                return (await handler.HandleAsync(new ConsultarDisponibleQuery(ids, almacenId), ct)).ToHttp();
+            })
+            .RequireAuthorization(Permisos.InventarioLeer);
+
         grupo.MapGet("/kardex", async (
                 Guid varianteId,
                 Guid? almacenId,

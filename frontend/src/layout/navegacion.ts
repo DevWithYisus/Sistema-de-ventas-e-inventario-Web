@@ -31,8 +31,8 @@ export const navegacion: ItemNavegacion[] = [
   { ruta: "/clientes", etiqueta: "Clientes", icono: Contact, permiso: Permisos.ClientesLeer },
   { ruta: "/gastos", etiqueta: "Gastos", icono: TrendingDown, permiso: Permisos.GastosRegistrar },
   { ruta: "/ventas", etiqueta: "Ventas", icono: ReceiptText, permiso: Permisos.VentasLeer, pendiente: true },
-  { ruta: "/inventario", etiqueta: "Inventario", icono: Boxes, permiso: Permisos.InventarioLeer, pendiente: true },
-  { ruta: "/productos", etiqueta: "Productos", icono: PackageSearch, permiso: Permisos.CatalogoLeer, pendiente: true },
+  { ruta: "/inventario", etiqueta: "Inventario", icono: Boxes, permiso: Permisos.InventarioLeer },
+  { ruta: "/productos", etiqueta: "Productos", icono: PackageSearch, permiso: Permisos.CatalogoLeer },
   { ruta: "/usuarios", etiqueta: "Usuarios", icono: UsersRound, permiso: Permisos.UsuariosAdministrar, pendiente: true },
   { ruta: "/configuracion", etiqueta: "Configuración", icono: Settings, permiso: Permisos.ConfiguracionAdministrar },
 ];

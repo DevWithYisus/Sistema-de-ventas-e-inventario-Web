@@ -11,6 +11,10 @@ namespace SistemaVentas.Api.Endpoints;
 
 public sealed record DefinirObsequiosRequest(bool EsParaObsequios);
 
+public sealed record ActualizarProductoRequest(
+    string Nombre, string? Descripcion, Guid? CategoriaId, string? CodigoBarras,
+    decimal Costo, decimal Precio, decimal StockMinimo, bool Activo = true);
+
 public static class CatalogoEndpoints
 {
     public static IEndpointRouteBuilder MapCatalogoEndpoints(this IEndpointRouteBuilder app)
@@ -69,14 +73,27 @@ public static class CatalogoEndpoints
                 (await handler.HandleAsync(new ObtenerProductoQuery(id), ct)).ToHttp())
             .RequireAuthorization(Permisos.CatalogoLeer);
 
+        // ?busqueda=gato&categoriaId=...&inactivos=false&pagina=1
         grupo.MapGet("/productos", async (
                 string? busqueda,
+                Guid? categoriaId,
+                bool? inactivos,
                 int? pagina,
                 int? tamanoPagina,
                 IQueryHandler<ListarProductosQuery, PaginaDto<ProductoResumenDto>> handler,
                 CancellationToken ct) =>
-                (await handler.HandleAsync(new ListarProductosQuery(busqueda, pagina ?? 1, tamanoPagina ?? 20), ct)).ToHttp())
+                (await handler.HandleAsync(
+                    new ListarProductosQuery(busqueda, pagina ?? 1, tamanoPagina ?? 20, categoriaId, inactivos ?? false), ct)).ToHttp())
             .RequireAuthorization(Permisos.CatalogoLeer);
+
+        grupo.MapPut("/productos/{id:guid}", async (
+                Guid id,
+                ActualizarProductoRequest s,
+                ICommandHandler<ActualizarProductoCommand, Guid> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(new ActualizarProductoCommand(
+                    id, s.Nombre, s.Descripcion, s.CategoriaId, s.CodigoBarras, s.Costo, s.Precio, s.StockMinimo, s.Activo), ct)).ToHttp())
+            .RequireAuthorization(Permisos.CatalogoEscribir);
 
         return app;
     }

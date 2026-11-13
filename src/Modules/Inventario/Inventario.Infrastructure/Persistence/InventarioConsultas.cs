@@ -83,7 +83,8 @@ internal sealed class InventarioConsultas(InventarioDbContext db) : IInventarioC
         var total = await consulta.CountAsync(ct);
 
         var items = await consulta
-            .OrderBy(x => x.k.Fecha).ThenBy(x => x.k.Secuencia).ThenBy(x => x.k.Id)
+            // Lo más reciente primero: es lo que se busca al revisar un producto
+            .OrderByDescending(x => x.k.Fecha).ThenByDescending(x => x.k.Secuencia).ThenByDescending(x => x.k.Id)
             .Skip((pagina - 1) * tamanoPagina)
             .Take(tamanoPagina)
             .Select(x => new KardexDto(

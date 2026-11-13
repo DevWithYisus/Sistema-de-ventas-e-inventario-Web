@@ -10,6 +10,13 @@ internal sealed class CatalogoRepositorio(CatalogoDbContext db) : ICatalogoRepos
     public void Agregar(UnidadMedida unidad) => db.UnidadesMedida.Add(unidad);
     public void Agregar(Categoria categoria) => db.Categorias.Add(categoria);
 
+    public Task<Producto?> ObtenerProductoAsync(Guid id, CancellationToken ct)
+        => db.Productos.Include(p => p.Variantes).FirstOrDefaultAsync(p => p.Id == id, ct);
+
+    public async Task<bool> CodigoBarrasEnUsoAsync(string codigoBarras, Guid? excluirVarianteId, CancellationToken ct)
+        => await db.Variantes.AnyAsync(v => v.CodigoBarras == codigoBarras && v.Id != excluirVarianteId, ct)
+           || await db.Presentaciones.AnyAsync(p => p.CodigoBarras == codigoBarras && p.VarianteId != excluirVarianteId, ct);
+
     public Task<bool> CategoriaCodigoExisteAsync(string codigo, CancellationToken ct)
         => db.Categorias.AnyAsync(c => c.Codigo == codigo, ct);
 

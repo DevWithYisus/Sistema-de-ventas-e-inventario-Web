@@ -377,3 +377,85 @@ export interface ListadoGastos {
   total: number;
   gastos: Pagina<Gasto>;
 }
+
+// ---------- Catálogo ----------
+
+export type TipoProducto = "Bien" | "Servicio" | "Combo";
+
+/** GET /api/catalogo/productos */
+export interface ProductoResumen {
+  id: string;
+  nombre: string;
+  sku: string;
+  tipo: TipoProducto;
+  precioBase: number;
+  activo: boolean;
+  varianteId: string;
+  codigoBarras: string | null;
+  costoEstandar: number;
+  stockMinimo: number;
+  categoriaId: string | null;
+  categoria: string | null;
+  unidadBaseId: string;
+  manejaInventario: boolean;
+  manejaLotes: boolean;
+  descripcion: string | null;
+}
+
+export interface Categoria {
+  id: string;
+  codigo: string;
+  nombre: string;
+  categoriaPadreId: string | null;
+  esParaObsequios: boolean;
+  activo: boolean;
+}
+
+export interface UnidadMedida {
+  id: string;
+  codigo: string;
+  nombre: string;
+  permiteDecimales: boolean;
+  activo: boolean;
+}
+
+// ---------- Inventario ----------
+
+export interface Existencia {
+  almacenId: string;
+  almacen: string;
+  varianteId: string;
+  sku: string;
+  producto: string;
+  loteId: string | null;
+  lote: string | null;
+  fechaVencimiento: string | null;
+  cantidad: number;
+  reservada: number;
+  disponible: number;
+  costoPromedio: number;
+  valorTotal: number;
+}
+
+export interface MovimientoKardex {
+  secuencia: number;
+  fecha: string;
+  almacenId: string;
+  loteId: string | null;
+  lote: string | null;
+  movimientoId: string;
+  numero: string;
+  tipo: string;
+  cantidad: number;
+  costoUnitario: number;
+  saldoCantidad: number;
+  costoPromedio: number;
+  saldoValor: number;
+}
+
+/** GET /api/inventario/alertas-stock */
+export interface AlertasStock {
+  agotados: number;
+  bajos: number;
+  alertas: Pagina<AlertaDeStock>;
+}
