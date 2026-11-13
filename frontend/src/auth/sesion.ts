@@ -6,6 +6,8 @@ export interface UsuarioSesion {
   nombreCompleto: string;
   negocioId: string;
   negocio: string;
+  /** Código con el que se inicia sesión (sesiones viejas no lo traen). */
+  negocioCodigo?: string | null;
   permisos: string[];
 }
 

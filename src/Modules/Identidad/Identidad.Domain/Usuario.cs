@@ -74,6 +74,35 @@ public sealed class Usuario : AuditableEntity
             _roles.Add(UsuarioRol.Crear(Id, rolId));
     }
 
+    /// <summary>Deja exactamente estos roles. Devuelve las asignaciones quitadas (para borrarlas).</summary>
+    public IReadOnlyList<UsuarioRol> DefinirRoles(IReadOnlyCollection<Guid> rolIds)
+    {
+        if (rolIds.Count == 0)
+            throw new DomainException("usuario.sin_roles", "El usuario necesita al menos un rol.");
+
+        var quitados = _roles.Where(r => !rolIds.Contains(r.RolId)).ToList();
+        foreach (var r in quitados)
+            _roles.Remove(r);
+
+        foreach (var id in rolIds)
+            AsignarRol(id);
+
+        return quitados;
+    }
+
+    public void ActualizarDatos(string nombreCompleto, string? email)
+    {
+        NombreCompleto = Guard.NoVacio(nombreCompleto, nameof(nombreCompleto), 150);
+        Email = NormalizarEmail(email);
+    }
+
+    /// <summary>Quita el bloqueo por intentos fallidos.</summary>
+    public void Desbloquear()
+    {
+        IntentosFallidos = 0;
+        BloqueadoHasta = null;
+    }
+
     public bool EstaBloqueado(DateTimeOffset ahora) => BloqueadoHasta is { } hasta && hasta > ahora;
 
     public void RegistrarAccesoExitoso(DateTimeOffset ahora)
@@ -96,5 +125,9 @@ public sealed class Usuario : AuditableEntity
     public void CambiarPassword(string passwordHash) => PasswordHash = Guard.NoVacio(passwordHash, nameof(passwordHash), 500);
 
     public void Desactivar() => Activo = false;
-    public void Activar() => Activo = true;
+    public void Activar()
+    {
+        Activo = true;
+        Desbloquear();
+    }
 }

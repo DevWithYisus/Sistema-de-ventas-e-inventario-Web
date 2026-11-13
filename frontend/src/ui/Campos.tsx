@@ -1,4 +1,5 @@
-import { forwardRef, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { forwardRef, useState, type InputHTMLAttributes, type ReactNode, type TextareaHTMLAttributes } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 export const claseCampo =
   "block w-full min-h-11 rounded-xl border-0 bg-white px-3.5 text-base text-stone-900 shadow-sm ring-1 ring-stone-300 placeholder:text-stone-400 focus:ring-2 focus:ring-bosque-600 focus:outline-none disabled:bg-stone-50 disabled:text-stone-500";
@@ -18,6 +19,24 @@ export const Texto = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
 ) {
   return <input ref={ref} {...resto} className={`${claseCampo} ${className}`} />;
 });
+
+/** Contraseña con botón para mostrarla u ocultarla. */
+export function Password({ className = "", ...resto }: Omit<InputHTMLAttributes<HTMLInputElement>, "type">) {
+  const [ver, setVer] = useState(false);
+  return (
+    <div className="relative">
+      <input {...resto} type={ver ? "text" : "password"} className={`${claseCampo} pr-11 ${className}`} />
+      <button
+        type="button"
+        onClick={() => setVer((v) => !v)}
+        className="absolute inset-y-0 right-0 flex w-11 items-center justify-center rounded-r-xl text-stone-500 hover:text-stone-800"
+        aria-label={ver ? "Ocultar contraseña" : "Mostrar contraseña"}
+      >
+        {ver ? <EyeOff className="size-5" aria-hidden /> : <Eye className="size-5" aria-hidden />}
+      </button>
+    </div>
+  );
+}
 
 export function AreaTexto({ className = "", ...resto }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
   return <textarea {...resto} className={`${claseCampo} min-h-20 py-2.5 ${className}`} />;

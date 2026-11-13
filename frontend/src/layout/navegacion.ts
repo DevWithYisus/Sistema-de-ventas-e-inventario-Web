@@ -33,6 +33,6 @@ export const navegacion: ItemNavegacion[] = [
   { ruta: "/ventas", etiqueta: "Ventas", icono: ReceiptText, permiso: Permisos.VentasLeer },
   { ruta: "/inventario", etiqueta: "Inventario", icono: Boxes, permiso: Permisos.InventarioLeer },
   { ruta: "/productos", etiqueta: "Productos", icono: PackageSearch, permiso: Permisos.CatalogoLeer },
-  { ruta: "/usuarios", etiqueta: "Usuarios", icono: UsersRound, permiso: Permisos.UsuariosAdministrar, pendiente: true },
+  { ruta: "/usuarios", etiqueta: "Usuarios", icono: UsersRound, permiso: Permisos.UsuariosAdministrar },
   { ruta: "/configuracion", etiqueta: "Configuración", icono: Settings, permiso: Permisos.ConfiguracionAdministrar },
 ];

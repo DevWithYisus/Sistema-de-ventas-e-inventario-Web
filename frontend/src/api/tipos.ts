@@ -500,3 +500,26 @@ export interface AlertasStock {
   bajos: number;
   alertas: Pagina<AlertaDeStock>;
 }
+
+// ---------- Usuarios ----------
+
+/** GET /api/identidad/usuarios */
+export interface UsuarioAdmin {
+  id: string;
+  nombreUsuario: string;
+  email: string | null;
+  nombreCompleto: string;
+  activo: boolean;
+  ultimoAcceso: string | null;
+  roles: string[];
+  bloqueadoHasta: string | null;
+}
+
+/** GET /api/identidad/roles */
+export interface RolDto {
+  id: string;
+  nombre: string;
+  descripcion: string | null;
+  esSistema: boolean;
+  permisos: string[];
+}

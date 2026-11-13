@@ -15,6 +15,9 @@ using SistemaVentas.Api.Http;
 
 namespace SistemaVentas.Api.Endpoints;
 
+public sealed record ActualizarUsuarioRequest(string NombreCompleto, string? Email, IReadOnlyList<string> Roles, bool Activo = true);
+public sealed record RestablecerPasswordRequest(string NuevaPassword);
+
 public static class IdentidadEndpoints
 {
     public static IEndpointRouteBuilder MapIdentidadEndpoints(this IEndpointRouteBuilder app)
@@ -28,6 +31,15 @@ public static class IdentidadEndpoints
                 CancellationToken ct) =>
                 (await handler.HandleAsync(comando, ct)).ToHttp())
             .AllowAnonymous()
+            .RequireRateLimiting("login");
+
+        // Cualquier usuario con sesión cambia su propia contraseña (con límite de intentos, como el login)
+        auth.MapPost("/cambiar-password", async (
+                CambiarMiPasswordCommand comando,
+                ICommandHandler<CambiarMiPasswordCommand, Guid> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(comando, ct)).ToHttp())
+            .RequireAuthorization()
             .RequireRateLimiting("login");
 
         // Devuelve lo que el servidor sabe del usuario según su token (útil para el frontend)
@@ -56,6 +68,20 @@ public static class IdentidadEndpoints
             IQueryHandler<ListarUsuariosQuery, IReadOnlyList<UsuarioDto>> handler,
             CancellationToken ct) =>
             (await handler.HandleAsync(new ListarUsuariosQuery(), ct)).ToHttp());
+
+        identidad.MapPut("/usuarios/{id:guid}", async (
+            Guid id,
+            ActualizarUsuarioRequest s,
+            ICommandHandler<ActualizarUsuarioCommand, Guid> handler,
+            CancellationToken ct) =>
+            (await handler.HandleAsync(new ActualizarUsuarioCommand(id, s.NombreCompleto, s.Email, s.Roles, s.Activo), ct)).ToHttp());
+
+        identidad.MapPost("/usuarios/{id:guid}/restablecer-password", async (
+            Guid id,
+            RestablecerPasswordRequest s,
+            ICommandHandler<RestablecerPasswordCommand, Guid> handler,
+            CancellationToken ct) =>
+            (await handler.HandleAsync(new RestablecerPasswordCommand(id, s.NuevaPassword), ct)).ToHttp());
 
         identidad.MapGet("/roles", async (
             IQueryHandler<ListarRolesQuery, IReadOnlyList<RolDto>> handler,

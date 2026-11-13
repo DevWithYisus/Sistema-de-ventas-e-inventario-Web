@@ -13,7 +13,7 @@ internal sealed class IdentidadConsultas(IdentidadDbContext db) : IIdentidadCons
             .OrderBy(u => u.NombreUsuario)
             .Select(u => new
             {
-                u.Id, u.NombreUsuario, u.Email, u.NombreCompleto, u.Activo, u.UltimoAcceso,
+                u.Id, u.NombreUsuario, u.Email, u.NombreCompleto, u.Activo, u.UltimoAcceso, u.BloqueadoHasta,
                 RolIds = u.Roles.Select(r => r.RolId).ToList()
             })
             .ToListAsync(ct);
@@ -23,7 +23,8 @@ internal sealed class IdentidadConsultas(IdentidadDbContext db) : IIdentidadCons
         return usuarios
             .Select(u => new UsuarioDto(
                 u.Id, u.NombreUsuario, u.Email, u.NombreCompleto, u.Activo, u.UltimoAcceso,
-                u.RolIds.Where(nombresDeRoles.ContainsKey).Select(id => nombresDeRoles[id]).Order().ToList()))
+                u.RolIds.Where(nombresDeRoles.ContainsKey).Select(id => nombresDeRoles[id]).Order().ToList(),
+                u.BloqueadoHasta))
             .ToList();
     }
 

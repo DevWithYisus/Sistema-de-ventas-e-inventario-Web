@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { NavLink, Outlet, useLocation } from "react-router";
-import { LogOut, Menu, X } from "lucide-react";
+import { KeyRound, LogOut, Menu, X } from "lucide-react";
+import { ModalCambiarMiPassword } from "../features/usuarios/ModalCambiarMiPassword";
 import { useAuth } from "../auth/AuthContext";
 import { navegacion } from "./navegacion";
 import { Logo } from "../ui/Logo";
@@ -69,6 +70,7 @@ export function AppLayout() {
 
 function MenuLateral({ alCerrar }: { alCerrar?: () => void }) {
   const { usuario, tienePermiso, cerrarSesion } = useAuth();
+  const [cambiandoPassword, setCambiandoPassword] = useState(false);
   const items = navegacion.filter((item) => tienePermiso(item.permiso));
 
   return (
@@ -137,6 +139,15 @@ function MenuLateral({ alCerrar }: { alCerrar?: () => void }) {
             </div>
             <button
               type="button"
+              onClick={() => setCambiandoPassword(true)}
+              className="rounded-lg p-2 text-bosque-200 hover:bg-white/10 hover:text-white"
+              aria-label="Cambiar mi contraseña"
+              title="Cambiar mi contraseña"
+            >
+              <KeyRound className="size-5" aria-hidden />
+            </button>
+            <button
+              type="button"
               onClick={cerrarSesion}
               className="rounded-lg p-2 text-bosque-200 hover:bg-white/10 hover:text-white"
               aria-label="Cerrar sesión"
@@ -145,6 +156,7 @@ function MenuLateral({ alCerrar }: { alCerrar?: () => void }) {
               <LogOut className="size-5" aria-hidden />
             </button>
           </div>
+          <ModalCambiarMiPassword abierto={cambiandoPassword} alCerrar={() => setCambiandoPassword(false)} />
         </div>
       )}
     </nav>

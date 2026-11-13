@@ -113,3 +113,26 @@ POST {{host}}/api/auth/login
 Content-Type: application/json
 
 { "negocio": "no-existe", "usuario": "admin", "password": "Admin12345" }
+
+
+# ================== Gestión de usuarios ==================
+
+### 17. Listar usuarios para tomar el id del administrador
+# @name usuariosA
+GET {{host}}/api/identidad/usuarios
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+### 18. El administrador intenta quitarse su propio acceso total siendo el único -> 400 (último administrador)
+# Cambia el id por el del usuario "admin" que aparece en la respuesta anterior
+PUT {{host}}/api/identidad/usuarios/00000000-0000-0000-0000-000000000000
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{ "nombreCompleto": "Administrador A", "email": null, "roles": ["Vendedor"], "activo": true }
+
+### 19. Cambiar mi contraseña con la actual equivocada -> 400
+POST {{host}}/api/auth/cambiar-password
+Content-Type: application/json
+Authorization: Bearer {{loginA.response.body.$.accessToken}}
+
+{ "passwordActual": "NoEsEsta123", "nuevaPassword": "Nueva12345" }

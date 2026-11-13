@@ -16,6 +16,7 @@ import { PaginaProductos } from "./features/productos/PaginaProductos";
 import { PaginaInventario } from "./features/inventario/PaginaInventario";
 import { PaginaVentas } from "./features/ventas/PaginaVentas";
 import { HistorialCaja } from "./features/caja/HistorialCaja";
+import { PaginaUsuarios } from "./features/usuarios/PaginaUsuarios";
 import { Permisos } from "./auth/permisos";
 
 export function App() {
@@ -93,6 +94,14 @@ export function App() {
           }
         />
 
+        <Route
+          path="usuarios"
+          element={
+            <RequierePermiso permiso={Permisos.UsuariosAdministrar}>
+              <PaginaUsuarios />
+            </RequierePermiso>
+          }
+        />
         <Route
           path="caja/historial"
           element={

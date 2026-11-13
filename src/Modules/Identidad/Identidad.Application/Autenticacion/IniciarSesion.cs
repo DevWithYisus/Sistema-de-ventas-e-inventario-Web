@@ -74,6 +74,6 @@ internal sealed class IniciarSesionHandler(
         return new SesionDto(
             token.AccessToken,
             token.ExpiraEn,
-            new UsuarioSesionDto(usuario.Id, usuario.NombreUsuario, usuario.Email, usuario.NombreCompleto, negocio.Id, negocio.Nombre, permisos));
+            new UsuarioSesionDto(usuario.Id, usuario.NombreUsuario, usuario.Email, usuario.NombreCompleto, negocio.Id, negocio.Nombre, permisos, negocio.Codigo));
     }
 }

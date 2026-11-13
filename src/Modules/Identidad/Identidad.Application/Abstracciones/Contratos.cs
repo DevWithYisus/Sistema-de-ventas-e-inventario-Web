@@ -32,6 +32,16 @@ public interface IIdentidadRepositorio
     Task<Usuario?> ObtenerUsuarioPorNombreUsuarioAsync(string nombreUsuario, CancellationToken ct);
     Task<bool> NombreUsuarioExisteAsync(string nombreUsuario, CancellationToken ct);
     Task<bool> EmailExisteAsync(string email, CancellationToken ct);
+    Task<bool> EmailEnUsoAsync(string email, Guid excluirUsuarioId, CancellationToken ct);
+
+    /// <summary>Usuario con sus roles, para editarlo.</summary>
+    Task<Usuario?> ObtenerUsuarioAsync(Guid id, CancellationToken ct);
+
+    /// <summary>Borra asignaciones de rol quitadas a un usuario.</summary>
+    void Quitar(IEnumerable<UsuarioRol> asignaciones);
+
+    /// <summary>Usuarios activos (sin contar uno) que tienen un rol con el permiso indicado.</summary>
+    Task<int> ContarUsuariosActivosConPermisoAsync(string permiso, Guid excluirUsuarioId, CancellationToken ct);
     Task<IReadOnlyList<Rol>> ObtenerRolesAsync(CancellationToken ct);
     Task<IReadOnlyList<string>> ObtenerPermisosAsync(Guid usuarioId, CancellationToken ct);
 }
