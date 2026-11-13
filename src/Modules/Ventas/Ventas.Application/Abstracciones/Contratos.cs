@@ -119,9 +119,9 @@ public interface IVentasConsultas
 {
     Task<VentaDto?> ObtenerVentaAsync(Guid id, CancellationToken ct);
 
-    Task<PaginaDto<VentaResumenDto>> ListarVentasAsync(
-        DateTimeOffset? desde, DateTimeOffset? hasta, EstadoVenta? estado,
-        int pagina, int tamanoPagina, CancellationToken ct);
+    Task<PaginaDto<VentaResumenDto>> ListarVentasAsync(FiltroVentas filtro, int pagina, int tamanoPagina, CancellationToken ct);
+
+    Task<TotalesListadoVentas> TotalesListadoAsync(FiltroVentas filtro, CancellationToken ct);
 
     // ---- Métricas (solo ventas completadas; rangos [desde, hasta) en UTC) ----
 

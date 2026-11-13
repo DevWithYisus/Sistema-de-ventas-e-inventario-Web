@@ -31,7 +31,20 @@ public sealed record VentaDto(
 
 public sealed record VentaResumenDto(
     Guid Id, string Numero, EstadoVenta Estado, DateTimeOffset Fecha,
-    string? ClienteNombre, decimal Total, int CantidadLineas);
+    string? ClienteNombre, decimal Total, int CantidadLineas,
+    string? VendedorNombre = null, IReadOnlyList<MetodoPago>? Metodos = null);
+
+/// <summary>Filtro del historial de ventas.</summary>
+/// <param name="Busqueda">Número de la venta o nombre del cliente.</param>
+/// <param name="SesionCajaId">Solo las ventas de un turno de caja.</param>
+public sealed record FiltroVentas(
+    DateTimeOffset? Desde = null, DateTimeOffset? Hasta = null, EstadoVenta? Estado = null,
+    string? Busqueda = null, Guid? SesionCajaId = null);
+
+/// <summary>Totales del filtro (todas las páginas), sin tener en cuenta el filtro de estado.</summary>
+public sealed record TotalesListadoVentas(int Completadas, decimal Total, int Anuladas);
+
+public sealed record ListadoVentasDto(int Completadas, decimal Total, int Anuladas, PaginaDto<VentaResumenDto> Ventas);
 
 // ---------- Métricas ----------
 

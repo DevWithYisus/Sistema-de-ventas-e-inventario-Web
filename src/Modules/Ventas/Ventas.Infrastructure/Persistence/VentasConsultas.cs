@@ -39,16 +39,52 @@ internal sealed class VentasConsultas(VentasDbContext db) : IVentasConsultas
                 v.VendedorNombre))
             .FirstOrDefaultAsync(ct);
 
-    public async Task<PaginaDto<VentaResumenDto>> ListarVentasAsync(
-        DateTimeOffset? desde, DateTimeOffset? hasta, EstadoVenta? estado,
-        int pagina, int tamanoPagina, CancellationToken ct)
+    /// <summary>Aplica el filtro del historial. El estado es opcional para poder calcular totales sin él.</summary>
+    private IQueryable<Venta> Filtrar(FiltroVentas f, bool conEstado)
     {
-        var consulta = db.Ventas.AsNoTracking().AsQueryable();
+        var consulta = db.Ventas.AsNoTracking().Where(v => v.Estado != EstadoVenta.Borrador);
 
         // Npgsql solo acepta DateTimeOffset en UTC para columnas timestamptz
-        if (desde is { } d) { var du = d.ToUniversalTime(); consulta = consulta.Where(v => v.Fecha >= du); }
-        if (hasta is { } h) { var hu = h.ToUniversalTime(); consulta = consulta.Where(v => v.Fecha <= hu); }
-        if (estado is { } e) consulta = consulta.Where(v => v.Estado == e);
+        if (f.Desde is { } d) { var du = d.ToUniversalTime(); consulta = consulta.Where(v => v.Fecha >= du); }
+        if (f.Hasta is { } h) { var hu = h.ToUniversalTime(); consulta = consulta.Where(v => v.Fecha <= hu); }
+        if (conEstado && f.Estado is { } e) consulta = consulta.Where(v => v.Estado == e);
+        if (f.SesionCajaId is { } s) consulta = consulta.Where(v => v.SesionCajaId == s);
+
+        if (!string.IsNullOrWhiteSpace(f.Busqueda))
+        {
+            var patron = $"%{Escapar(f.Busqueda.Trim())}%";
+            consulta = consulta.Where(v =>
+                (v.Numero != null && EF.Functions.ILike(v.Numero, patron)) ||
+                (v.ClienteNombre != null && EF.Functions.ILike(v.ClienteNombre, patron)));
+        }
+
+        return consulta;
+    }
+
+    private static string Escapar(string texto)
+        => texto.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
+
+    public async Task<TotalesListadoVentas> TotalesListadoAsync(FiltroVentas filtro, CancellationToken ct)
+    {
+        var totales = await Filtrar(filtro, conEstado: false)
+            .GroupBy(_ => 1)
+            .Select(g => new
+            {
+                Completadas = g.Count(v => v.Estado == EstadoVenta.Completada),
+                Total = g.Where(v => v.Estado == EstadoVenta.Completada).Sum(v => v.Total),
+                Anuladas = g.Count(v => v.Estado == EstadoVenta.Anulada)
+            })
+            .FirstOrDefaultAsync(ct);
+
+        return totales is null
+            ? new TotalesListadoVentas(0, 0m, 0)
+            : new TotalesListadoVentas(totales.Completadas, totales.Total, totales.Anuladas);
+    }
+
+    public async Task<PaginaDto<VentaResumenDto>> ListarVentasAsync(
+        FiltroVentas filtro, int pagina, int tamanoPagina, CancellationToken ct)
+    {
+        var consulta = Filtrar(filtro, conEstado: true);
 
         var total = await consulta.CountAsync(ct);
 
@@ -57,7 +93,9 @@ internal sealed class VentasConsultas(VentasDbContext db) : IVentasConsultas
             .Skip((pagina - 1) * tamanoPagina)
             .Take(tamanoPagina)
             .Select(v => new VentaResumenDto(
-                v.Id, v.Numero ?? "", v.Estado, v.Fecha, v.ClienteNombre, v.Total, v.Detalles.Count()))
+                v.Id, v.Numero ?? "", v.Estado, v.Fecha, v.ClienteNombre, v.Total, v.Detalles.Count(),
+                v.VendedorNombre,
+                v.Pagos.Select(p => p.Metodo).Distinct().ToList()))
             .ToListAsync(ct);
 
         return new PaginaDto<VentaResumenDto>(items, pagina, tamanoPagina, total);

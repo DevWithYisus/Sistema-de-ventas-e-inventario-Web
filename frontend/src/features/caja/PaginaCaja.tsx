@@ -6,6 +6,7 @@ import {
   CircleCheck,
   CircleMinus,
   CirclePlus,
+  History,
   Lock,
   ShoppingCart,
   Wallet,
@@ -20,7 +21,24 @@ import { Modal } from "../../ui/Modal";
 import { Tarjeta } from "../../ui/Tarjeta";
 import { formatearFechaHora, formatearHora, formatearPesos } from "../../utils/formato";
 import { etiquetaMetodo, iconoMetodo } from "../../utils/metodosPago";
+import { useAuth } from "../../auth/AuthContext";
+import { Permisos } from "../../auth/permisos";
 import { useAbrirCaja, useCerrarCaja, useEstadoCaja, useMovimientoCaja } from "./api";
+
+/** Enlace al historial de turnos (solo con permiso). */
+function EnlaceHistorial() {
+  const { tienePermiso } = useAuth();
+  if (!tienePermiso(Permisos.CajaHistorial)) return null;
+  return (
+    <Link
+      to="/caja/historial"
+      className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-stone-700 shadow-sm ring-1 ring-stone-300 hover:bg-stone-50"
+    >
+      <History className="size-4" aria-hidden />
+      Turnos anteriores
+    </Link>
+  );
+}
 
 export function PaginaCaja() {
   const { data, error, isPending, refetch } = useEstadoCaja();
@@ -67,9 +85,12 @@ function CajaCerrada({ ultimoCierre }: { ultimoCierre: ResumenCaja | null }) {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <header>
-        <h1 className="text-2xl font-extrabold text-stone-900 sm:text-3xl">Caja</h1>
-        <p className="mt-1 text-stone-600">Abre la caja con el efectivo de base para empezar a vender.</p>
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-extrabold text-stone-900 sm:text-3xl">Caja</h1>
+          <p className="mt-1 text-stone-600">Abre la caja con el efectivo de base para empezar a vender.</p>
+        </div>
+        <EnlaceHistorial />
       </header>
 
       {ultimoCierre && <ResumenDeCierre resumen={ultimoCierre} />}
@@ -165,6 +186,7 @@ function CajaAbierta({ resumen, alCerrar }: { resumen: ResumenCaja; alCerrar: (r
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <EnlaceHistorial />
           <Link
             to="/punto-de-venta"
             className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-white px-4 text-sm font-bold text-stone-700 shadow-sm ring-1 ring-stone-300 hover:bg-stone-50"
@@ -218,7 +240,7 @@ function CajaAbierta({ resumen, alCerrar }: { resumen: ResumenCaja; alCerrar: (r
   );
 }
 
-function Cuadre({ resumen: r }: { resumen: ResumenCaja }) {
+export function Cuadre({ resumen: r }: { resumen: ResumenCaja }) {
   return (
     <div>
       <dl className="divide-y divide-stone-100 text-sm">
@@ -264,7 +286,7 @@ function Linea({ etiqueta, valor, signo }: { etiqueta: string; valor: number; si
   );
 }
 
-function PorMetodo({ totales, vacio }: { totales: TotalPorMetodo[]; vacio: string }) {
+export function PorMetodo({ totales, vacio }: { totales: TotalPorMetodo[]; vacio: string }) {
   if (totales.length === 0) return <p className="text-sm text-stone-500">{vacio}</p>;
   return (
     <ul className="space-y-3">
@@ -446,7 +468,7 @@ function ModalCierre({
   );
 }
 
-function Diferencia({ valor }: { valor: number }) {
+export function Diferencia({ valor }: { valor: number }) {
   let contenido: ReactNode;
   let estilo: string;
 

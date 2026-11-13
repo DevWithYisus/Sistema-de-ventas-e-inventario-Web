@@ -33,16 +33,19 @@ public static class VentasEndpoints
                 (await handler.HandleAsync(new ObtenerVentaQuery(id), ct)).ToHttp())
             .RequireAuthorization(Permisos.VentasLeer);
 
+        // Historial: ?desde&hasta&estado=Completada|Anulada&busqueda=VTA-00012|cliente&sesionCajaId&pagina&tamanoPagina
         grupo.MapGet("/", async (
                 DateTimeOffset? desde,
                 DateTimeOffset? hasta,
                 EstadoVenta? estado,
+                string? busqueda,
+                Guid? sesionCajaId,
                 int? pagina,
                 int? tamanoPagina,
-                IQueryHandler<ListarVentasQuery, PaginaDto<VentaResumenDto>> handler,
+                IQueryHandler<ListarVentasQuery, ListadoVentasDto> handler,
                 CancellationToken ct) =>
                 (await handler.HandleAsync(
-                    new ListarVentasQuery(desde, hasta, estado, pagina ?? 1, tamanoPagina ?? 20), ct)).ToHttp())
+                    new ListarVentasQuery(desde, hasta, estado, pagina ?? 1, tamanoPagina ?? 20, busqueda, sesionCajaId), ct)).ToHttp())
             .RequireAuthorization(Permisos.VentasLeer);
 
         // ---------- Punto de venta ----------

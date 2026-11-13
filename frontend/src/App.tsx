@@ -14,6 +14,8 @@ import { PaginaGastos } from "./features/gastos/PaginaGastos";
 import { PaginaConfiguracion } from "./features/configuracion/PaginaConfiguracion";
 import { PaginaProductos } from "./features/productos/PaginaProductos";
 import { PaginaInventario } from "./features/inventario/PaginaInventario";
+import { PaginaVentas } from "./features/ventas/PaginaVentas";
+import { HistorialCaja } from "./features/caja/HistorialCaja";
 import { Permisos } from "./auth/permisos";
 
 export function App() {
@@ -91,6 +93,22 @@ export function App() {
           }
         />
 
+        <Route
+          path="caja/historial"
+          element={
+            <RequierePermiso permiso={Permisos.CajaHistorial}>
+              <HistorialCaja />
+            </RequierePermiso>
+          }
+        />
+        <Route
+          path="ventas"
+          element={
+            <RequierePermiso permiso={Permisos.VentasLeer}>
+              <PaginaVentas />
+            </RequierePermiso>
+          }
+        />
         <Route
           path="productos"
           element={

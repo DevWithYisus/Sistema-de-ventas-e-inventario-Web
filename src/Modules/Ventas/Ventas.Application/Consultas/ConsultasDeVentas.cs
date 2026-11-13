@@ -22,16 +22,24 @@ internal sealed class ObtenerVentaHandler(IVentasConsultas consultas) : IQueryHa
 
 public sealed record ListarVentasQuery(
     DateTimeOffset? Desde = null, DateTimeOffset? Hasta = null, EstadoVenta? Estado = null,
-    int Pagina = 1, int TamanoPagina = 20) : IQuery<PaginaDto<VentaResumenDto>>;
+    int Pagina = 1, int TamanoPagina = 20, string? Busqueda = null, Guid? SesionCajaId = null)
+    : IQuery<ListadoVentasDto>;
 
 internal sealed class ListarVentasHandler(IVentasConsultas consultas)
-    : IQueryHandler<ListarVentasQuery, PaginaDto<VentaResumenDto>>
+    : IQueryHandler<ListarVentasQuery, ListadoVentasDto>
 {
-    public async Task<Result<PaginaDto<VentaResumenDto>>> HandleAsync(ListarVentasQuery query, CancellationToken ct)
+    public async Task<Result<ListadoVentasDto>> HandleAsync(ListarVentasQuery query, CancellationToken ct)
     {
         var pagina = Math.Max(1, query.Pagina);
         var tamano = Math.Clamp(query.TamanoPagina, 1, 100);
+        var busqueda = string.IsNullOrWhiteSpace(query.Busqueda) ? null : query.Busqueda.Trim();
+        if (busqueda?.Length > 100)
+            return Error.Validation("ventas.busqueda", "La búsqueda admite máximo 100 caracteres.");
 
-        return await consultas.ListarVentasAsync(query.Desde, query.Hasta, query.Estado, pagina, tamano, ct);
+        var filtro = new FiltroVentas(query.Desde, query.Hasta, query.Estado, busqueda, query.SesionCajaId);
+        var ventas = await consultas.ListarVentasAsync(filtro, pagina, tamano, ct);
+        var totales = await consultas.TotalesListadoAsync(filtro, ct);
+
+        return new ListadoVentasDto(totales.Completadas, totales.Total, totales.Anuladas, ventas);
     }
 }

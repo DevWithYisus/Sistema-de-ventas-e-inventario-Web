@@ -101,3 +101,18 @@ export function rangoDelMes(fecha: string, meses = 0): { desde: string; hasta: s
   const iso = (d: Date) => `${d.getFullYear()}-${dosDigitos(d.getMonth() + 1)}-${dosDigitos(d.getDate())}`;
   return { desde: iso(inicio), hasta: iso(fin) };
 }
+
+/** Desfase de la zona del negocio en una fecha, como "-05:00". */
+function desfaseNegocio(fecha: string): string {
+  const partes = new Intl.DateTimeFormat("en-US", { timeZone: config.zonaHoraria, timeZoneName: "longOffset" })
+    .formatToParts(new Date(`${fecha}T12:00:00Z`));
+  const texto = partes.find((p) => p.type === "timeZoneName")?.value ?? "GMT";
+  return texto === "GMT" ? "Z" : texto.replace("GMT", "");
+}
+
+/** Inicio (00:00) o fin (23:59:59.999) de un día "aaaa-mm-dd" en la hora del negocio, en ISO con desfase. */
+export const inicioDelDia = (fecha: string) => `${fecha}T00:00:00${desfaseNegocio(fecha)}`;
+export const finDelDia = (fecha: string) => `${fecha}T23:59:59.999${desfaseNegocio(fecha)}`;
+
+/** Día ("aaaa-mm-dd") en la hora del negocio de un instante ISO. */
+export const diaLocal = (instante: string) => isoLocal.format(new Date(instante));

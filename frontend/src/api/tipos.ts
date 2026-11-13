@@ -20,6 +20,16 @@ export interface VentaResumen {
   clienteNombre: string | null;
   total: number;
   cantidadLineas: number;
+  vendedorNombre?: string | null;
+  metodos?: MetodoPago[] | null;
+}
+
+/** GET /api/ventas (historial) */
+export interface ListadoVentas {
+  completadas: number;
+  total: number;
+  anuladas: number;
+  ventas: Pagina<VentaResumen>;
 }
 
 export interface AlertaDeStock {
@@ -267,6 +277,37 @@ export interface ResumenCaja {
   efectivoContado: number | null;
   diferencia: number | null;
   observacionCierre: string | null;
+}
+
+export interface SesionCajaResumen {
+  id: string;
+  numero: string;
+  estado: EstadoCaja;
+  abiertaEn: string;
+  abiertaPor: string | null;
+  cerradaEn: string | null;
+  cerradaPor: string | null;
+  montoInicial: number;
+  efectivoEsperado: number | null;
+  efectivoContado: number | null;
+  diferencia: number | null;
+}
+
+export interface MovimientoCaja {
+  id: string;
+  fecha: string;
+  tipo: TipoMovimientoCaja;
+  /** + entra al cajón, − sale */
+  monto: number;
+  documento: string | null;
+  documentoId: string | null;
+  descripcion: string | null;
+}
+
+/** GET /api/caja/sesiones/{id} */
+export interface DetalleSesionCaja {
+  resumen: ResumenCaja;
+  movimientos: MovimientoCaja[];
 }
 
 /** GET /api/caja/actual */

@@ -65,7 +65,7 @@ internal sealed class ObtenerResumenDashboardHandler(
 
         var top = await ventas.ProductosMasVendidosAsync(p.MesActual.Desde, p.MesActual.Hasta, TopProductos, ct);
         var metodos = await ventas.VentasPorMetodoDePagoAsync(p.MesActual.Desde, p.MesActual.Hasta, ct);
-        var ultimas = await ventas.ListarVentasAsync(null, null, null, 1, CantidadUltimasVentas, ct);
+        var ultimas = await ventas.ListarVentasAsync(new FiltroVentas(), 1, CantidadUltimasVentas, ct);
 
         var obsequios = await ventas.CostoObsequiosAsync(p.MesActual.Desde, p.MesActual.Hasta, ct);
         var cartera = await clientes.ResumenCarteraAsync(ct);
