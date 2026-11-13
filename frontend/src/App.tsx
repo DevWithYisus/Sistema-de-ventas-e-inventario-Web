@@ -8,6 +8,8 @@ import { Proximamente } from "./paginas/Proximamente";
 import { Dashboard } from "./features/dashboard/Dashboard";
 import { PaginaCaja } from "./features/caja/PaginaCaja";
 import { PuntoDeVenta } from "./features/pos/PuntoDeVenta";
+import { ListaClientes } from "./features/clientes/ListaClientes";
+import { FichaCliente } from "./features/clientes/FichaCliente";
 import { Permisos } from "./auth/permisos";
 
 export function App() {
@@ -47,6 +49,23 @@ export function App() {
           element={
             <RequierePermiso permiso={Permisos.CajaOperar}>
               <PaginaCaja />
+            </RequierePermiso>
+          }
+        />
+
+        <Route
+          path="clientes"
+          element={
+            <RequierePermiso permiso={Permisos.ClientesLeer}>
+              <ListaClientes />
+            </RequierePermiso>
+          }
+        />
+        <Route
+          path="clientes/:id"
+          element={
+            <RequierePermiso permiso={Permisos.ClientesLeer}>
+              <FichaCliente />
             </RequierePermiso>
           }
         />

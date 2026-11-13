@@ -270,3 +270,75 @@ export interface EstadoCajaDto {
   abierta: boolean;
   resumen: ResumenCaja | null;
 }
+
+// ---------- Clientes y abonos ----------
+
+/** GET /api/clientes/{id} */
+export interface ClienteDetalle {
+  id: string;
+  nombre: string;
+  documento: string | null;
+  telefono: string | null;
+  direccion: string | null;
+  complementoDireccion: string | null;
+  email: string | null;
+  notas: string | null;
+  esGeneral: boolean;
+  activo: boolean;
+  cupoCredito: number;
+  saldoDeuda: number;
+  cupoDisponible: number;
+  saldoPuntos: number;
+  valorPuntosEnPesos: number;
+  creadoEn: string;
+}
+
+export type TipoMovimientoCliente = "Venta" | "AnulacionVenta" | "Abono" | "AnulacionAbono";
+
+export interface MovimientoCliente {
+  id: string;
+  fecha: string;
+  tipo: TipoMovimientoCliente;
+  documento: string;
+  ventaId: string | null;
+  abonoId: string | null;
+  /** + aumenta la deuda, − la reduce */
+  deuda: number;
+  /** + ganados, − usados o reversados */
+  puntos: number;
+  saldoDeuda: number;
+  saldoPuntos: number;
+}
+
+export interface AbonoRegistrado {
+  id: string;
+  numero: string;
+  monto: number;
+  puntosGanados: number;
+  saldoDeuda: number;
+  saldoPuntos: number;
+}
+
+/** GET /api/abonos/{id} */
+export interface AbonoDetalle {
+  id: string;
+  numero: string;
+  fecha: string;
+  clienteId: string;
+  clienteNombre: string;
+  clienteDocumento: string | null;
+  monto: number;
+  metodo: MetodoPago;
+  referencia: string | null;
+  observacion: string | null;
+  puntosGanados: number;
+  estado: "Activo" | "Anulado";
+  motivoAnulacion: string | null;
+  saldoDeudaDespues: number;
+  saldoPuntosDespues: number;
+}
+
+export interface ResumenCartera {
+  totalPorCobrar: number;
+  clientesConDeuda: number;
+}

@@ -37,6 +37,13 @@ public static class ClientesEndpoints
                     buscar, conDeuda ?? false, inactivos ?? false, pagina ?? 1, tamanoPagina ?? 20), ct)).ToHttp())
             .RequireAuthorization(Permisos.ClientesLeer);
 
+        // Total por cobrar y cuántos clientes deben
+        grupo.MapGet("/cartera", async (
+                IQueryHandler<ObtenerResumenCarteraQuery, ResumenCarteraDto> handler,
+                CancellationToken ct) =>
+                (await handler.HandleAsync(new ObtenerResumenCarteraQuery(), ct)).ToHttp())
+            .RequireAuthorization(Permisos.ClientesLeer);
+
         grupo.MapGet("/{id:guid}", async (
                 Guid id,
                 IQueryHandler<ObtenerClienteQuery, ClienteDto> handler,

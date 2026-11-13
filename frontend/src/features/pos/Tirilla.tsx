@@ -1,16 +1,13 @@
-import { useCallback, useEffect, useState, type ReactNode } from "react";
-import { createPortal } from "react-dom";
+import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { mensajeDeError } from "../../api/cliente";
 import type { ConfiguracionVentas, VentaDetalle } from "../../api/tipos";
 import { formatearFechaHoraLarga, formatearNumero, formatearPesos } from "../../utils/formato";
 import { etiquetaMetodo } from "../../utils/metodosPago";
+import { EncabezadoNegocio, estiloPapel, Fila, PieNegocio, Separador, useAreaImpresion } from "../impresion/Comprobante";
 import { obtenerVenta } from "./api";
 
-/**
- * Comprobante para impresora térmica (58 u 80 mm). Solo texto negro, sin colores ni fondos:
- * las térmicas imprimen en un solo tono y el texto pequeño con colores sale borroso.
- */
+/** Tirilla de una venta para impresora térmica (58 u 80 mm). */
 export function Tirilla({ venta, configuracion }: { venta: VentaDetalle; configuracion: ConfiguracionVentas }) {
   const angosta = configuracion.anchoTirillaMm === 58;
   const efectivo = venta.pagos.find((p) => p.metodo === "Efectivo");
@@ -18,24 +15,8 @@ export function Tirilla({ venta, configuracion }: { venta: VentaDetalle; configu
   const vendidas = venta.lineas.filter((l) => !l.esObsequio);
 
   return (
-    <div
-      className="text-black"
-      style={{
-        width: `${configuracion.anchoTirillaMm}mm`,
-        padding: angosta ? "2mm" : "3mm 4mm",
-        fontFamily: "'Courier New', ui-monospace, monospace",
-        fontSize: angosta ? "10.5px" : "12px",
-        lineHeight: 1.35,
-      }}
-    >
-      {/* Encabezado */}
-      <div style={{ textAlign: "center" }}>
-        <div style={{ fontSize: angosta ? "14px" : "16px", fontWeight: 800 }}>{configuracion.nombreComercial}</div>
-        {configuracion.nit && <div>NIT {configuracion.nit}</div>}
-        {configuracion.direccion && <div>{configuracion.direccion}</div>}
-        {configuracion.telefono && <div>Tel. {configuracion.telefono}</div>}
-      </div>
-
+    <div style={estiloPapel(configuracion.anchoTirillaMm)}>
+      <EncabezadoNegocio configuracion={configuracion} />
       <Separador />
 
       {venta.estado === "Anulada" && (
@@ -49,7 +30,6 @@ export function Tirilla({ venta, configuracion }: { venta: VentaDetalle; configu
 
       <Separador />
 
-      {/* Productos */}
       {vendidas.map((l, i) => (
         <div key={`${l.varianteId}-${i}`} style={{ marginBottom: "1.5mm" }}>
           <div>{l.descripcion}</div>
@@ -71,7 +51,6 @@ export function Tirilla({ venta, configuracion }: { venta: VentaDetalle; configu
 
       <Separador />
 
-      {/* Totales */}
       {(venta.descuento > 0 || venta.impuesto > 0) && <Fila izquierda="Subtotal" derecha={formatearPesos(venta.subtotal)} />}
       {venta.descuento > 0 && <Fila izquierda="Descuento" derecha={`- ${formatearPesos(venta.descuento)}`} />}
       {venta.impuesto > 0 && <Fila izquierda="IVA" derecha={formatearPesos(venta.impuesto)} />}
@@ -81,7 +60,6 @@ export function Tirilla({ venta, configuracion }: { venta: VentaDetalle; configu
 
       <Separador />
 
-      {/* Pagos */}
       {venta.pagos.map((p) => (
         <Fila key={p.metodo} izquierda={etiquetaMetodo[p.metodo]} derecha={formatearPesos(p.monto)} />
       ))}
@@ -94,7 +72,6 @@ export function Tirilla({ venta, configuracion }: { venta: VentaDetalle; configu
         </>
       )}
 
-      {/* Puntos y crédito del cliente */}
       {venta.clienteSaldoPuntos !== null && (venta.puntosGanados > 0 || venta.puntosRedimidos > 0 || venta.clienteSaldoPuntos > 0) && (
         <>
           <Separador />
@@ -107,44 +84,21 @@ export function Tirilla({ venta, configuracion }: { venta: VentaDetalle; configu
         <Fila izquierda="Saldo pendiente" derecha={formatearPesos(venta.clienteSaldoDeuda)} />
       )}
 
-      {configuracion.mensajePie && (
-        <>
-          <Separador />
-          <div style={{ textAlign: "center" }}>{configuracion.mensajePie}</div>
-        </>
-      )}
-
-      {/* Margen para el corte del papel */}
-      <div style={{ height: "8mm" }} />
+      <PieNegocio configuracion={configuracion} />
     </div>
   );
 }
 
-function Fila({ izquierda, derecha }: { izquierda: ReactNode; derecha?: ReactNode }) {
-  return (
-    <div style={{ display: "flex", justifyContent: "space-between", gap: "2mm" }}>
-      <span style={{ overflowWrap: "anywhere" }}>{izquierda}</span>
-      {derecha !== undefined && <span style={{ whiteSpace: "nowrap" }}>{derecha}</span>}
-    </div>
-  );
-}
-
-function Separador() {
-  return <div style={{ borderTop: "1px dashed #000", margin: "2mm 0" }} />;
-}
-
-/**
- * Prepara la tirilla de una venta y abre el diálogo de impresión del navegador.
- * Solo se imprime la tirilla: el resto de la página se oculta con CSS (@media print en index.css).
- */
+/** Busca la venta y la manda a imprimir. Renderiza `areaImpresion` en la página. */
 export function useImpresionTirilla(configuracion: ConfiguracionVentas | undefined) {
   const queryClient = useQueryClient();
-  const [trabajo, setTrabajo] = useState<{ venta: VentaDetalle; n: number } | null>(null);
+  const { imprimir: imprimirContenido, area } = useAreaImpresion(configuracion?.anchoTirillaMm);
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const imprimir = useCallback(
     async (ventaId: string) => {
+      if (!configuracion) return;
       setCargando(true);
       setError(null);
       try {
@@ -153,33 +107,15 @@ export function useImpresionTirilla(configuracion: ConfiguracionVentas | undefin
           queryFn: () => obtenerVenta(ventaId),
           staleTime: 0,
         });
-        setTrabajo((t) => ({ venta, n: (t?.n ?? 0) + 1 }));
+        imprimirContenido(<Tirilla venta={venta} configuracion={configuracion} />);
       } catch (e) {
         setError(mensajeDeError(e));
       } finally {
         setCargando(false);
       }
     },
-    [queryClient],
+    [queryClient, configuracion, imprimirContenido],
   );
 
-  // Cuando la tirilla ya está en la página, se manda a imprimir
-  useEffect(() => {
-    if (!trabajo) return;
-    const id = window.requestAnimationFrame(() => window.print());
-    return () => window.cancelAnimationFrame(id);
-  }, [trabajo]);
-
-  const areaImpresion =
-    trabajo && configuracion
-      ? createPortal(
-          <div id="area-impresion">
-            <style>{`@page { size: ${configuracion.anchoTirillaMm}mm auto; margin: 0; }`}</style>
-            <Tirilla venta={trabajo.venta} configuracion={configuracion} />
-          </div>,
-          document.body,
-        )
-      : null;
-
-  return { imprimir, cargando, error, areaImpresion };
+  return { imprimir, cargando, error, areaImpresion: area };
 }

@@ -201,3 +201,13 @@ internal sealed class EstadoDeCuentaHandler(IClientesConsultas consultas)
         => await consultas.EstadoDeCuentaAsync(
             query.ClienteId, Math.Max(1, query.Pagina), Math.Clamp(query.TamanoPagina, 1, 100), ct);
 }
+
+// ---------- Cartera (total por cobrar) ----------
+public sealed record ObtenerResumenCarteraQuery : IQuery<ResumenCarteraDto>;
+
+internal sealed class ObtenerResumenCarteraHandler(IClientesConsultas consultas)
+    : IQueryHandler<ObtenerResumenCarteraQuery, ResumenCarteraDto>
+{
+    public async Task<Result<ResumenCarteraDto>> HandleAsync(ObtenerResumenCarteraQuery query, CancellationToken ct)
+        => await consultas.ResumenCarteraAsync(ct);
+}
